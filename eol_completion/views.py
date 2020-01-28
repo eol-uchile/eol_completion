@@ -181,6 +181,10 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
                 'completion_view',
                 kwargs={
                     'course_id': six.text_type(course_key)}),
+            'data_url': reverse(
+                'completion_data_view',
+                kwargs={
+                    'course_id': six.text_type(course_key)}),
             "content": data[0],
             "time": data[1]}
 

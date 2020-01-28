@@ -16,7 +16,7 @@ $(document).ready(function () {
     var myTable = $('#mytable').DataTable({
         scrollX: true,
         rowReorder: true,
-        "ajax": "data",
+        "ajax": $('#data_url').val(),
         "processing": true,
         "sDom": "B<'row'>lfrtip",        
         buttons: [ {
