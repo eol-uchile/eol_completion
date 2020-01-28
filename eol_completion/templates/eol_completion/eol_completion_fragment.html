@@ -1,0 +1,189 @@
+## mako
+<%! from django.utils.translation import ugettext as _ %>
+<%namespace name='static' file='/static_content.html'/>
+<%inherit file="/main.html" />
+<%block name="bodyclass">view-new_tab_type is-in-course course</%block>
+<%block name="pagetitle">${_("PAGE NAME")}</%block>
+<%block name="headextra">
+
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/DataTables-1.10.20/css/jquery.dataTables.min.css')}"/> 
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/Responsive-2.2.3/css/responsive.dataTables.min.css')}"/> 
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/Buttons-1.6.1/css/buttons.dataTables.min.css')}"/> 
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/FixedColumns-3.3.0/css/fixedColumns.dataTables.min.css')}"/> 
+
+<script type="text/javascript" src="${static.url('eol_completion/jQuery-3.3.1/jquery-3.3.1.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/DataTables-1.10.20/js/jquery.dataTables.min.js')}"></script> 
+<script type="text/javascript" src="${static.url('eol_completion/Responsive-2.2.3/js/dataTables.responsive.min.js')}"></script>    
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/dataTables.buttons.min.js')}"></script>      
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.colVis.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.flash.min.js')}"></script>  
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.html5.min.js')}"></script> 
+<script type="text/javascript" src="${static.url('eol_completion/JSZip-2.5.0/jszip.min.js')}"></script>  
+<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/pdfmake.min.js')}"></script>  
+<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/vfs_fonts.js')}"></script>     
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.print.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/js/natural.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/js/eol_completion.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/FixedColumns-3.3.0/js/dataTables.fixedColumns.min.js')}"></script>
+
+<%static:css group='style-course'/>
+</%block>
+<%include file="/courseware/course_navigation.html" args="active_page='PAGE-SLUG'" />
+<style>
+    div.dataTables_wrapper {           
+            margin: 0 auto;
+        }
+    th, td {
+        border-top: 1px solid #dddddd;
+        border-bottom: 1px solid #dddddd;
+        border-right: 1px solid #dddddd;
+        white-space: nowrap;
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+    }
+    
+    th:first-child {
+        border-left: 1px solid #dddddd;
+    }
+    a.novisto {
+        background-color: #55c0ff;
+        box-shadow: 0 2px 0 #efd9d9;
+        color: black;
+        padding: 0em 0.5em;
+        position: relative;
+        text-decoration: none;
+    }
+
+    a.visto {
+        background-color: #fbeeee;
+        box-shadow: 0 2px 0 #efd9d9;
+        color: black;
+        padding: 0em 0.5em;
+        position: relative;
+        text-decoration: none;
+    }
+    a.visto:hover {
+        background-color: #55c0ff;
+        cursor: pointer;
+    }
+    a.novisto:hover {
+        background-color: #fbeeee;
+        cursor: pointer;
+    }
+    a.novisto:active {
+        box-shadow: none;
+        top: 2px;
+    }
+    .grade-book-footer{
+        text-align: center;
+    }
+    li {
+        float: left;
+        list-style-type: none;
+    }
+    .list-divided .item, ul .item, .list-bulleted .item, ol .item, .list-ordered .item, .list-inline .item, .list-grouped .item, .list .item, .list li, ol li, ul li {
+        display: list-item;
+        margin-bottom: 1rem;
+        margin-right: 0.5rem;  
+    }
+
+</style>
+<div class="container">
+    <div class="loading" style="text-align: center;">
+            Cargando datos de la tabla ...
+    </div>    
+    <div class="teams-wrapper">
+        <main id="main" aria-label="Content" tabindex="-1">
+            <section class="teams-content" style="visibility: hidden;">
+                <div class="dataTables_wrapper">
+                    <div style="padding: 15px;"> 
+					    Mostrar/Ocultar Sección:				    
+                        <ul id="botones" style="padding-left: 20px;"> 
+                        </ul>      
+				    </div>
+                    <table id="mytable" class="stripe row-border order-column cell-border no-footer" style="width:100%;table-layout:auto; text-align: center;">
+                        <thead>
+                            <!--Main Header-->
+                            <tr>
+                                <th rowspan="3" data-col_from="0" data-col_to="0">Correo</th>
+                                <th rowspan="3" data-col_from="1" data-col_to="1">Estudiante</th>
+                                <% col_len = 2 %>
+                                %for section in content.items():
+                                    %if section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <th class="mainhead" colspan="${section[1]['num_children']+1}" data-col_from="${col_len}" data-col_to="${col_len+section[1]['num_children']}">${section[1]['name']}</th>
+                                        <% col_len = col_len + section[1]['num_children'] +1 %>
+                                    %endif
+                                %endfor
+                                <th rowspan="3" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
+                                <th rowspan="3" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
+                            </tr>
+                             <!--Secondary Header-->
+                            <tr>
+                                <% i = 1 %>
+                                <% j = 1 %> 
+                                <% point_position = 1 %>
+                                <% first = True %>
+                                <% last = {} %>
+                                %for section in content.items():                                                                   
+                                    %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:                                        
+                                        <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>                                       
+                                        <% j += 1 %>
+                                    %endif
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <% last = section[1] %>
+                                    %endif
+                                    %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <% point_position = point_position + last['num_children'] + 1 %>
+                                        <% last = section[1] %>
+                                        <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                                        <% i += 1 %>
+                                        <% j= 1 %>    
+                                    %endif
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <% first = False %>    
+                                    %endif                                                                  
+                                %endfor
+                                <% point_position = point_position + last['num_children'] + 1 %>
+                                <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                            </tr>
+                             <!--Tertiary Header-->
+                            <tr>                            
+                                <% i = 1 %>
+                                <% j = 1 %>
+                                <% k = 1 %>
+                                <% first = True %>
+                                <% first2 = True %>
+                                %for section in content.items():                                    
+                                    %if not first and section[1]['type'] == 'section':                                       
+                                        <% i += 1 %> 
+                                        <% j = 0 %>
+                                    %endif
+                                    %if not first2 and section[1]['type'] == 'subsection':
+                                        <% j += 1 %>
+                                        <% k = 1 %>
+                                    %endif
+                                    %if section[1]['type'] == 'unit':
+                                        <% first2 = False %> 
+                                        <td title="${section[1]['name']}">
+                                            ${i}.${j}.${k}
+                                        </td>
+                                        <% k += 1 %>
+                                    %endif
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <% first = False %>    
+                                    %endif
+                                %endfor
+                            </tr>
+                        </thead>
+                        <tbody>
+                                       
+                        </tbody>                        
+                    </table>
+                </div>
+            </section>            
+            <div class="grade-book-footer">
+                Ultima Actualización: ${time} - Próxima actualización disponible dentro de 5 minutos
+            </div>
+        </main>
+    </div>
+</div>
