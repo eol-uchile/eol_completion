@@ -14,6 +14,7 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+from student.roles import CourseStaffRole
 from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from capa.tests.response_xml_factory import StringResponseXMLFactory
 from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
@@ -72,8 +73,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             CourseEnrollmentFactory(user=self.student, course_id=self.course.id)
 
             # Create and Enroll staff user
-            self.staff_user = UserFactory(username='staff_user', password='test', email='staff@edx.org', is_staff=True)
+            self.staff_user = UserFactory(username='staff_user', password='test', email='staff@edx.org')
             CourseEnrollmentFactory(user=self.staff_user, course_id=self.course.id)
+            CourseStaffRole(self.course.id).add_users(self.staff_user)
 
             # Log the student in
             self.client = Client()
@@ -114,7 +116,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_no_staff(self):
         url = reverse('completion_data_view', kwargs={'course_id': self.course.id})
         self.response = self.client.get(url)
-        self.assertEqual(self.response.status_code, 302)
+        self.assertEqual(self.response.status_code, 404)
 
     def test_render_blockcompletion(self):
         for item in self.items:

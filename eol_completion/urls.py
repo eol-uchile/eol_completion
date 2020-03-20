@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.conf.urls import url
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
 from .views import EolCompletionFragmentView, EolCompletionData
 
 
@@ -18,7 +17,7 @@ urlpatterns = (
         r'courses/{}/student_completion/data$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        staff_member_required(EolCompletionData.as_view()),
+        EolCompletionData.as_view(),
         name='completion_data_view',
     ),
 )
