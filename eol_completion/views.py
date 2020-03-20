@@ -195,6 +195,10 @@ class EolCompletionData(View, Content):
     def get(self, request, course_id, **kwargs):
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, "load", course_key)
+        staff_access = bool(has_access(request.user, 'staff', course))
+        if not staff_access:
+            raise Http404()
+
         context = self.get_context(request, course_id, course, course_key)
 
         return JsonResponse(context)
