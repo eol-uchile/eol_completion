@@ -26,7 +26,7 @@ from six import text_type
 from six.moves import range
 import json
 import views
-
+import time
 USER_COUNT = 11
 
 
@@ -34,8 +34,8 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def setUp(self):
         super(TestEolCompletionView, self).setUp()
         # create a course
-        self.course = CourseFactory.create(org='mss', course='999',
-                                           display_name='eol_completion_course')
+        self.course = CourseFactory.create(
+            org='mss', course='999', display_name='eol_completion_course')
 
         # Now give it some content
         with self.store.bulk_operations(self.course.id, emit_signals=False):
@@ -68,13 +68,22 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         # to create a new cc user when creating a django user
         with patch('student.models.cc.User.save'):
             # Create the student
-            self.student = UserFactory(username='student', password='test', email='student@edx.org')
+            self.student = UserFactory(
+                username='student',
+                password='test',
+                email='student@edx.org')
             # Enroll the student in the course
-            CourseEnrollmentFactory(user=self.student, course_id=self.course.id)
+            CourseEnrollmentFactory(
+                user=self.student, course_id=self.course.id)
 
             # Create and Enroll staff user
-            self.staff_user = UserFactory(username='staff_user', password='test', email='staff@edx.org')
-            CourseEnrollmentFactory(user=self.staff_user, course_id=self.course.id)
+            self.staff_user = UserFactory(
+                username='staff_user',
+                password='test',
+                email='staff@edx.org')
+            CourseEnrollmentFactory(
+                user=self.staff_user,
+                course_id=self.course.id)
             CourseStaffRole(self.course.id).add_users(self.staff_user)
 
             # Log the student in
@@ -83,7 +92,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
 
             # Log the user staff in
             self.staff_client = Client()
-            assert_true(self.staff_client.login(username='staff_user', password='test'))
+            assert_true(
+                self.staff_client.login(
+                    username='staff_user',
+                    password='test'))
 
     def test_render_page(self):
         url = reverse('completion_view', kwargs={'course_id': self.course.id})
@@ -91,20 +103,31 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 200)
 
     def test_render_data(self):
-        url = reverse('completion_data_view', kwargs={'course_id': self.course.id})
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content)
+        self.assertEqual(len(data['data']), 0)
+
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content)
         self.assertEqual(len(data['data']), 13)
-        self.assertEqual(data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'No'])
+        self.assertEqual(
+            data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'No'])
 
     def test_render_data_wrong_course(self):
-        url = reverse('completion_data_view', kwargs={'course_id': 'course-v1:mss+MSS001+2019_2'})
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': 'course-v1:mss+MSS001+2019_2'})
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_page_wrong_course(self):
-        url = reverse('completion_view', kwargs={'course_id': 'course-v1:mss+MSS001+2019_2'})
+        url = reverse(
+            'completion_view', kwargs={
+                'course_id': 'course-v1:mss+MSS001+2019_2'})
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -114,7 +137,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_data_no_staff(self):
-        url = reverse('completion_data_view', kwargs={'course_id': self.course.id})
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -128,19 +153,39 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 completion=1.0,
             )
 
-        url = reverse('completion_data_view', kwargs={'course_id': self.course.id})
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content)
+        self.assertEqual(len(data['data']), 0)
+
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content)
         self.assertEqual(len(data['data']), 13)
-        self.assertEqual(data['data'][-1], [u'student@edx.org', u'student', u'&#10004;', u'1/1', u'1/1', u'No'])
+        self.assertEqual(data['data'][-1],
+                         [u'student@edx.org',
+                          u'student',
+                          u'&#10004;',
+                          u'1/1',
+                          u'1/1',
+                          u'No'])
 
     def test_render_certificate(self):
-        GeneratedCertificate.objects.create(user=self.student, course_id=self.course.id)
+        GeneratedCertificate.objects.create(
+            user=self.student, course_id=self.course.id)
 
-        url = reverse('completion_data_view', kwargs={'course_id': self.course.id})
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content)
+        self.assertEqual(len(data['data']), 0)
+
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content)
         self.assertEqual(len(data['data']), 13)
-        self.assertEqual(data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'Si'])
+        self.assertEqual(
+            data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'Si'])

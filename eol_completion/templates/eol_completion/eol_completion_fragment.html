@@ -93,7 +93,7 @@
     <div class="loading" style="text-align: center;">
             Cargando datos de la tabla ...
     </div>    
-    <div class="teams-wrapper">
+    <div class="teams-wrapper">       
         <main id="main" aria-label="Content" tabindex="-1">
             <section class="teams-content" style="visibility: hidden;">
                 <div class="dataTables_wrapper">
@@ -124,7 +124,7 @@
                                 <% j = 1 %> 
                                 <% point_position = 1 %>
                                 <% first = True %>
-                                <% last = {} %>
+                                <% last = {'num_children':0} %>
                                 %for section in content.items():                                                                   
                                     %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:                                        
                                         <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>                                       

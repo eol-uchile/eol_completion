@@ -1,4 +1,23 @@
-$(document).ready(function () {
+
+function CompletionData(){    
+    $.ajax({
+        dataType: 'json',
+        type: 'GET',
+        url: $('#data_url').val(),
+        success: function(data) {                               
+            if (data["data"].length == 0){
+                setTimeout(CompletionData(), 5000);
+            }
+            else{
+                return CompletionTable(data["data"]);
+            }
+        },
+        error:  function(data) {
+            return alert("False");
+        }
+    })
+}
+function CompletionTable(data){
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
     var array_index_column_pto = []
@@ -12,11 +31,10 @@ $(document).ready(function () {
         var aux_j = main_header[j].dataset.col_to
         $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' <li><a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a></li>'
     }
-    
     var myTable = $('#mytable').DataTable({
         scrollX: true,
         rowReorder: true,
-        "ajax": $('#data_url').val(),
+        data: data,        
         "processing": true,
         "sDom": "B<'row'>lfrtip",        
         buttons: [ {
@@ -55,6 +73,12 @@ $(document).ready(function () {
             }
         }
     });
+}
+
+$(document).ready(function () {
+   
+    CompletionData();
+    
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";   
     $('a.toggle-vis').on('click', function (e) {
