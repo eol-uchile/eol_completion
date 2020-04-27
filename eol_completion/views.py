@@ -31,7 +31,6 @@ from celery import current_task, task
 from lms.djangoapps.instructor_task.tasks_base import BaseInstructorTask
 from lms.djangoapps.instructor_task.api_helper import submit_task
 from functools import partial
-from datetime import datetime
 from time import time
 from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task, TaskProgress
 from django.db import IntegrityError, transaction
@@ -85,14 +84,16 @@ def task_get_tick(
     content, max_unit = Content().get_content(info, id_course)
     data = EolCompletionData().get_ticks(
         content, info, enrolled_students, course_key, max_unit)
-
+    times = datetime.now()
+    times = times.strftime("%d/%m/%Y, %H:%M:%S")
+    data['time'] = times
     current_step = {'step': 'Uploading Data Eol Completion'}
     cache.set(
         "eol_completion-" +
         task_input["course_id"] +
         "-data",
-        [data],
-        40)
+        data,
+        300)
 
     return task_progress.update_task_state(extra_meta=current_step)
 
@@ -255,9 +256,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             data = []
             content, maxn = self.get_content(info, id_course)
 
-            time = datetime.now()
-            time = time.strftime("%d/%m/%Y, %H:%M:%S")
-            data.extend([content, time])
+            data.extend([content])
             cache.set("eol_completion-" + course_id + "-content", data, 300)
 
         context = {
@@ -270,8 +269,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
                 'completion_data_view',
                 kwargs={
                     'course_id': six.text_type(course_key)}),
-            "content": data[0],
-            "time": data[1]}
+            "content": data[0]}
 
         return context
 
@@ -296,12 +294,12 @@ class EolCompletionData(View, Content):
     def get_context(self, request, course_id, display_name_course):
         data = cache.get("eol_completion-" + course_id + "-data")
         if data is None:
-            data = [{"data": []}]
+            data = {"data": []}
             try:
                 task_process_tick(request, course_id, display_name_course)
             except AlreadyRunningError:
                 pass
-        context = data[0]
+        context = data
 
         return context
 
@@ -323,7 +321,6 @@ class EolCompletionData(View, Content):
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
-
         for user in students_id:
             i += 1
             # Get a list of true/false if they completed the units

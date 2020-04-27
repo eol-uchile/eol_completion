@@ -136,7 +136,7 @@
                                     %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% point_position = point_position + last['num_children'] + 1 %>
                                         <% last = section[1] %>
-                                        <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                                        <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
                                         <% i += 1 %>
                                         <% j= 1 %>    
                                     %endif
@@ -145,7 +145,7 @@
                                     %endif                                                                  
                                 %endfor
                                 <% point_position = point_position + last['num_children'] + 1 %>
-                                <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                                <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
                             </tr>
                              <!--Tertiary Header-->
                             <tr>                            
@@ -182,8 +182,8 @@
                     </table>
                 </div>
             </section>            
-            <div class="grade-book-footer">
-                Ultima Actualización: ${time} - Próxima actualización disponible dentro de 5 minutos
+            <div id="eol-completion-time" class="grade-book-footer">
+                
             </div>
         </main>
     </div>

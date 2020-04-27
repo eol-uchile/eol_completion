@@ -1,15 +1,14 @@
-
 function CompletionData(){    
     $.ajax({
         dataType: 'json',
         type: 'GET',
         url: $('#data_url').val(),
-        success: function(data) {                               
+        success: function(data) {
             if (data["data"].length == 0){
-                setTimeout(CompletionData(), 5000);
+                setTimeout(CompletionData, 5000);
             }
             else{
-                return CompletionTable(data["data"]);
+                return CompletionTable(data);
             }
         },
         error:  function(data) {
@@ -18,6 +17,7 @@ function CompletionData(){
     })
 }
 function CompletionTable(data){
+    
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
     var array_index_column_pto = []
@@ -34,15 +34,15 @@ function CompletionTable(data){
     var myTable = $('#mytable').DataTable({
         scrollX: true,
         rowReorder: true,
-        data: data,        
+        data: data["data"],
         "processing": true,
-        "sDom": "B<'row'>lfrtip",        
+        "sDom": "B<'row'>lfrtip",
         buttons: [ {
-           extend: 'excelHtml5',           
+           extend: 'excelHtml5',
            title : 'Seguimiento'
         }],        
         fixedColumns:   {
-            leftColumns: 2            
+            leftColumns: 2
         },
         "pageLength": 100,
         "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
@@ -73,14 +73,9 @@ function CompletionTable(data){
             }
         }
     });
-}
-
-$(document).ready(function () {
-   
-    CompletionData();
-    
     $('.loading')[0].style.display="none";
-    $('.teams-content')[0].style.visibility = "visible";   
+    $('.teams-content')[0].style.visibility = "visible";
+    $('#eol-completion-time')[0].innerHTML = "Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de 5 minutos"
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object
@@ -88,6 +83,7 @@ $(document).ready(function () {
         var aux = minmax.split(',')
         var min = parseInt(aux[0])
         var max = parseInt(aux[1])
+        
         for (i = min; i <= max; i++) {
             var column = myTable.column(i);
             column.visible(!column.visible());
@@ -100,5 +96,9 @@ $(document).ready(function () {
             $(this).removeClass('novisto')
             $(this).addClass('visto')
         }
-    });
+    }); 
+}
+
+$(document).ready(function () {   
+    CompletionData();       
 });
