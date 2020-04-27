@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import six
 import json
 import math
+from django.conf import settings
 from datetime import datetime
 from courseware.courses import get_course_with_access
 from django.template.loader import render_to_string
@@ -37,6 +38,7 @@ from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext_noop
 from pytz import UTC
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
+from numpy import sum
 # Create your views here.
 
 FILTER_LIST = ['xml_attributes']
@@ -93,7 +95,7 @@ def task_get_tick(
         task_input["course_id"] +
         "-data",
         data,
-        300)
+        settings.EOL_COMPLETION_TIME_CACHE)
 
     return task_progress.update_task_state(extra_meta=current_step)
 
@@ -257,7 +259,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             content, maxn = self.get_content(info, id_course)
 
             data.extend([content])
-            cache.set("eol_completion-" + course_id + "-content", data, 300)
+            cache.set("eol_completion-" + course_id + "-content", data, settings.EOL_COMPLETION_TIME_CACHE)
 
         context = {
             "course": course,
@@ -321,16 +323,23 @@ class EolCompletionData(View, Content):
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
+        completion = []
         for user in students_id:
             i += 1
             # Get a list of true/false if they completed the units
             # and number of completed units
-            data = self.get_data_tick(content, info, user, blocks, max_unit)
+            data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
             user_tick['data'].append(list(aux_user_tick))
+            if len(completion) != 0:
+                completion = sum([completion, aux_completion], 0)
+            else:
+                completion = aux_completion
+        completion = [str(x) for x in completion]
+        user_tick['completion'] = completion
         return user_tick
 
     def get_block(self, students_id, course_key):
@@ -355,6 +364,7 @@ class EolCompletionData(View, Content):
             and number of completed units
         """
         data = []
+        aux_completion = []
         completed_unit = 0  # Number of completed units per student
         completed_unit_per_section = 0  # Number of completed units per section
         num_units_section = 0  # Number of units per section
@@ -375,12 +385,18 @@ class EolCompletionData(View, Content):
                     completed_unit -= 1
                     completed_unit_per_section -= 1
                     data.append('')
+                    aux_completion.append(0)
                 else:
                     data.append('&#10004;')
+                    aux_completion.append(1)
             if not first and unit[1]['type'] == 'section' and unit[1]['num_children'] > 0:
                 aux_point = str(completed_unit_per_section) + \
                     "/" + str(num_units_section)
                 data.append(aux_point)
+                if completed_unit_per_section == num_units_section:
+                    aux_completion.append(1)
+                else:
+                    aux_completion.append(0)
                 completed_unit_per_section = 0
                 num_units_section = 0
             if first and unit[1]['type'] == 'section' and unit[1]['num_children'] > 0:
@@ -388,9 +404,17 @@ class EolCompletionData(View, Content):
         aux_point = str(completed_unit_per_section) + \
             "/" + str(num_units_section)
         data.append(aux_point)
+        if completed_unit_per_section == num_units_section:
+            aux_completion.append(1)
+        else:
+            aux_completion.append(0)
         aux_final_point = str(completed_unit) + "/" + str(max_unit)
+        if completed_unit == max_unit:
+            aux_completion.append(1)
+        else:
+            aux_completion.append(0)
         data.append(aux_final_point)
-        return data
+        return data, aux_completion
 
     def get_block_tick(self, blocks_unit, blocks, user):
         """

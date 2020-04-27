@@ -16,8 +16,7 @@ function CompletionData(){
         }
     })
 }
-function CompletionTable(data){
-    
+function CompletionTable(data){    
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
     var array_index_column_pto = []
@@ -31,6 +30,12 @@ function CompletionTable(data){
         var aux_j = main_header[j].dataset.col_to
         $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' <li><a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a></li>'
     }
+    var footer = $('#eol-completion-tfoot')[0];
+    footer_aux = "<tr><th hidden></th><th>Total</th>";
+    for (j = 0; j <data["completion"].length; j++) {  
+        footer_aux = footer_aux + "<th>" + data["completion"][j] + "</th>";
+    }
+    footer.innerHTML = footer_aux +"<th></th></tr>";
     var myTable = $('#mytable').DataTable({
         scrollX: true,
         rowReorder: true,
@@ -41,7 +46,7 @@ function CompletionTable(data){
            extend: 'excelHtml5',
            title : 'Seguimiento'
         }],        
-        fixedColumns:   {
+        fixedColumns: {
             leftColumns: 2
         },
         "pageLength": 100,
@@ -55,12 +60,12 @@ function CompletionTable(data){
         language: {
             "decimal": "",
             "emptyTable": "No hay información",
-            "info": "Mostrando _START_ a _END_ de _TOTAL_ Entradas",
-            "infoEmpty": "Mostrando 0 to 0 of 0 Entradas",
-            "infoFiltered": "(Filtrado de _MAX_ total entradas)",
+            "info": "Mostrando _START_ a _END_ de _TOTAL_ Estudiantes",
+            "infoEmpty": "Mostrando 0 to 0 of 0 Estudiantes",
+            "infoFiltered": "(Filtrado de _MAX_ total Estudiantes)",
             "infoPostFix": "",
             "thousands": ",",
-            "lengthMenu": "Mostrar _MENU_ Entradas",
+            "lengthMenu": "Mostrar _MENU_ Estudiantes",
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
             "search": "Buscar:",
@@ -72,10 +77,10 @@ function CompletionTable(data){
                 "previous": "Anterior"
             }
         }
-    });
+    });    
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de 5 minutos"
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de 5 minutos"
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object
