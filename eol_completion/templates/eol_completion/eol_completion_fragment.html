@@ -6,21 +6,21 @@
 <%block name="pagetitle">${_("PAGE NAME")}</%block>
 <%block name="headextra">
 
-<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/DataTables-1.10.20/css/jquery.dataTables.min.css')}"/> 
-<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/Responsive-2.2.3/css/responsive.dataTables.min.css')}"/> 
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/DataTables-1.10.20/css/jquery.dataTables.min.css')}"/>
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/Responsive-2.2.3/css/responsive.dataTables.min.css')}"/>
 <link rel="stylesheet" type="text/css" href="${static.url('eol_completion/Buttons-1.6.1/css/buttons.dataTables.min.css')}"/> 
-<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/FixedColumns-3.3.0/css/fixedColumns.dataTables.min.css')}"/> 
+<link rel="stylesheet" type="text/css" href="${static.url('eol_completion/FixedColumns-3.3.0/css/fixedColumns.dataTables.min.css')}"/>
 
 <script type="text/javascript" src="${static.url('eol_completion/jQuery-3.3.1/jquery-3.3.1.js')}"></script>
-<script type="text/javascript" src="${static.url('eol_completion/DataTables-1.10.20/js/jquery.dataTables.min.js')}"></script> 
-<script type="text/javascript" src="${static.url('eol_completion/Responsive-2.2.3/js/dataTables.responsive.min.js')}"></script>    
-<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/dataTables.buttons.min.js')}"></script>      
+<script type="text/javascript" src="${static.url('eol_completion/DataTables-1.10.20/js/jquery.dataTables.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/Responsive-2.2.3/js/dataTables.responsive.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/dataTables.buttons.min.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.colVis.min.js')}"></script>
-<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.flash.min.js')}"></script>  
-<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.html5.min.js')}"></script> 
-<script type="text/javascript" src="${static.url('eol_completion/JSZip-2.5.0/jszip.min.js')}"></script>  
-<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/pdfmake.min.js')}"></script>  
-<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/vfs_fonts.js')}"></script>     
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.flash.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.html5.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/JSZip-2.5.0/jszip.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/pdfmake.min.js')}"></script>
+<script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/vfs_fonts.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.print.min.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/js/natural.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/js/eol_completion.js')}"></script>
@@ -30,7 +30,7 @@
 </%block>
 <%include file="/courseware/course_navigation.html" args="active_page='PAGE-SLUG'" />
 <style>
-    div.dataTables_wrapper {           
+    div.dataTables_wrapper {
             margin: 0 auto;
         }
     th, td {
@@ -76,7 +76,7 @@
     }
     .grade-book-footer{
         text-align: center;
-    }
+    }    
     li {
         float: left;
         list-style-type: none;
@@ -92,17 +92,19 @@
     <input type="text" name="data_url" id="data_url" value="${data_url}" hidden>
     <div class="loading" style="text-align: center;">
             Cargando datos de la tabla ...
-    </div>    
+    </div>
+    <div class="eol-completion-error" style="text-align: center;color: red;">
+    </div>
     <div class="teams-wrapper">
         <main id="main" aria-label="Content" tabindex="-1">
             <section class="teams-content" style="visibility: hidden;">
                 <div class="dataTables_wrapper">
-                    <div style="padding: 15px;"> 
-					    Mostrar/Ocultar Sección:				    
-                        <ul id="botones" style="padding-left: 20px;"> 
-                        </ul>      
+                    <div style="padding: 15px;">
+					    Mostrar/Ocultar Sección:
+                        <ul id="botones" style="padding-left: 20px;">
+                        </ul>
 				    </div>
-                    <table id="mytable" class="stripe row-border order-column cell-border no-footer" style="width:100%;table-layout:auto; text-align: center;">
+                    <table id="mytable" class="stripe row-border order-column cell-border" style="width:100%;table-layout:auto; text-align: center;">
                         <thead>
                             <!--Main Header-->
                             <tr>
@@ -124,10 +126,10 @@
                                 <% j = 1 %> 
                                 <% point_position = 1 %>
                                 <% first = True %>
-                                <% last = {} %>
-                                %for section in content.items():                                                                   
-                                    %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:                                        
-                                        <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>                                       
+                                <% last = {'num_children':0} %>
+                                %for section in content.items():
+                                    %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
+                                        <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>
                                         <% j += 1 %>
                                     %endif
                                     %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
@@ -136,26 +138,26 @@
                                     %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% point_position = point_position + last['num_children'] + 1 %>
                                         <% last = section[1] %>
-                                        <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                                        <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
                                         <% i += 1 %>
                                         <% j= 1 %>    
                                     %endif
                                     %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% first = False %>    
-                                    %endif                                                                  
+                                    %endif
                                 %endfor
                                 <% point_position = point_position + last['num_children'] + 1 %>
-                                <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
+                                <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
                             </tr>
                              <!--Tertiary Header-->
-                            <tr>                            
+                            <tr>
                                 <% i = 1 %>
                                 <% j = 1 %>
                                 <% k = 1 %>
                                 <% first = True %>
                                 <% first2 = True %>
-                                %for section in content.items():                                    
-                                    %if not first and section[1]['type'] == 'section':                                       
+                                %for section in content.items():
+                                    %if not first and section[1]['type'] == 'section':
                                         <% i += 1 %> 
                                         <% j = 0 %>
                                     %endif
@@ -171,19 +173,17 @@
                                         <% k += 1 %>
                                     %endif
                                     %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <% first = False %>    
+                                        <% first = False %>
                                     %endif
                                 %endfor
                             </tr>
                         </thead>
-                        <tbody>
-                                       
-                        </tbody>                        
+                        <tbody></tbody>
+                        <tfoot id="eol-completion-tfoot"></tfoot>
                     </table>
                 </div>
-            </section>            
-            <div class="grade-book-footer">
-                Ultima Actualización: ${time} - Próxima actualización disponible dentro de 5 minutos
+            </section>
+            <div id="eol-completion-time" class="grade-book-footer">
             </div>
         </main>
     </div>
