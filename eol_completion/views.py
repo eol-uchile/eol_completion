@@ -89,6 +89,7 @@ def task_get_tick(
     times = datetime.now()
     times = times.strftime("%d/%m/%Y, %H:%M:%S")
     data['time'] = times
+    data['time_queue'] = str(settings.EOL_COMPLETION_TIME_CACHE / 60)
     current_step = {'step': 'Uploading Data Eol Completion'}
     cache.set(
         "eol_completion-" +

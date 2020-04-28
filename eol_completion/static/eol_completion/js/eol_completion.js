@@ -1,4 +1,4 @@
-function CompletionData(){    
+function CompletionData(){
     $.ajax({
         dataType: 'json',
         type: 'GET',
@@ -11,12 +11,17 @@ function CompletionData(){
                 return CompletionTable(data);
             }
         },
-        error:  function(data) {
-            return alert("False");
+        error: function() {
+            return CompletionDataError();
         }
     })
 }
-function CompletionTable(data){    
+function CompletionDataError(){
+    var error = $('.eol-completion-error')[0]
+    $('.loading')[0].style.display="none";
+    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL"
+}
+function CompletionTable(data){
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
     var array_index_column_pto = []
@@ -77,10 +82,10 @@ function CompletionTable(data){
                 "previous": "Anterior"
             }
         }
-    });    
+    });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de 5 minutos"
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos"
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object
@@ -104,6 +109,6 @@ function CompletionTable(data){
     }); 
 }
 
-$(document).ready(function () {   
-    CompletionData();       
+$(document).ready(function () {
+    CompletionData();
 });
