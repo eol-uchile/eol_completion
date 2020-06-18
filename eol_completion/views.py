@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
+
 
 import six
 import json
@@ -15,7 +15,7 @@ from django.core.cache import cache
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from xblock.fields import Scope
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.keys import CourseKey, UsageKey, LearningContextKey
 from opaque_keys import InvalidKeyError
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -215,7 +215,7 @@ class Content(object):
                     return field.values != field.default
 
             inherited_metadata = {field.name: field.read_json(
-                module) for field in module.fields.values() if is_inherited(field)}
+                module) for field in list(module.fields.values()) if is_inherited(field)}
             destination[six.text_type(
                 module.location)]['inherited_metadata'] = inherited_metadata
 
@@ -347,9 +347,10 @@ class EolCompletionData(View, Content):
         """
             Get all completed students block
         """
+        context_key = LearningContextKey.from_string(str(course_key))
         aux_blocks = BlockCompletion.objects.filter(
             user_id__in=students_id,
-            course_key=course_key,
+            context_key=context_key,
             completion=1.0).values(
             'user_id',
             'block_key')
@@ -370,7 +371,7 @@ class EolCompletionData(View, Content):
         completed_unit_per_section = 0  # Number of completed units per section
         num_units_section = 0  # Number of units per section
         first = True
-        for unit in content.items():
+        for unit in list(content.items()):
             if unit[1]['type'] == 'unit':
                 unit_info = info[unit[1]['id']]
                 blocks_unit = unit_info['children']

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
-from openedx.core.lib.tests.tools import assert_true
 from mock import patch, Mock
 
 
@@ -19,13 +17,13 @@ from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from capa.tests.response_xml_factory import StringResponseXMLFactory
 from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
 from completion import models
-from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.keys import CourseKey, LearningContextKey
 from courseware.courses import get_course_with_access
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from six import text_type
 from six.moves import range
 import json
-import views
+from . import views
 import time
 USER_COUNT = 11
 
@@ -88,11 +86,11 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
 
             # Log the student in
             self.client = Client()
-            assert_true(self.client.login(username='student', password='test'))
+            self.assertTrue(self.client.login(username='student', password='test'))
 
             # Log the user staff in
             self.staff_client = Client()
-            assert_true(
+            self.assertTrue(
                 self.staff_client.login(
                     username='staff_user',
                     password='test'))
@@ -107,15 +105,15 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             'completion_data_view', kwargs={
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 0)
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
-            data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'No'])
+            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'No'])
 
     def test_render_data_wrong_course(self):
         url = reverse(
@@ -144,11 +142,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_blockcompletion(self):
+        context_key = LearningContextKey.from_string(str(self.course.id))
         for item in self.items:
             usage_key = item.scope_ids.usage_id
             completion = models.BlockCompletion.objects.create(
                 user=self.student,
-                course_key=self.course.id,
+                context_key=context_key,
                 block_key=usage_key,
                 completion=1.0,
             )
@@ -157,20 +156,20 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             'completion_data_view', kwargs={
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 0)
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(data['data'][-1],
-                         [u'student@edx.org',
-                          u'student',
-                          u'&#10004;',
-                          u'1/1',
-                          u'1/1',
-                          u'No'])
+                         ['student@edx.org',
+                          'student',
+                          '&#10004;',
+                          '1/1',
+                          '1/1',
+                          'No'])
 
     def test_render_certificate(self):
         GeneratedCertificate.objects.create(
@@ -180,12 +179,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             'completion_data_view', kwargs={
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 0)
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
-        data = json.loads(self.response.content)
+        data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
-            data['data'][-1], [u'student@edx.org', u'student', u'', u'0/1', u'0/1', u'Si'])
+            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'Si'])
