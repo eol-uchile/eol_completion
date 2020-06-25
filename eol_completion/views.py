@@ -241,7 +241,9 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         return fragment
 
     def get_context(self, request, course_id, course, course_key):
-
+        """
+            Returns headers table
+        """
         data = cache.get("eol_completion-" + course_id + "-content")
         if data is None:
             store = modulestore()
@@ -295,6 +297,9 @@ class EolCompletionData(View, Content):
         return JsonResponse(context)
 
     def get_context(self, request, course_id, display_name_course):
+        """
+            Return eol completion data
+        """
         data = cache.get("eol_completion-" + course_id + "-data")
         if data is None:
             data = {"data": []}
@@ -314,7 +319,7 @@ class EolCompletionData(View, Content):
             course_key,
             max_unit):
         """
-            Dictionary of students with true/false if students completed the units
+            Dictionary of students with ticks if students completed the units
         """
         user_tick = defaultdict(list)
 

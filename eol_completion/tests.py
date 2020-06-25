@@ -96,11 +96,17 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                     password='test'))
 
     def test_render_page(self):
+        """
+            Test reder page normal process
+        """
         url = reverse('completion_view', kwargs={'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
 
     def test_render_data(self):
+        """
+            Test get data normal process
+        """
         url = reverse(
             'completion_data_view', kwargs={
                 'course_id': self.course.id})
@@ -116,6 +122,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'No'])
 
     def test_render_data_wrong_course(self):
+        """
+            Test get data wrong course
+        """
         url = reverse(
             'completion_data_view', kwargs={
                 'course_id': 'course-v1:mss+MSS001+2019_2'})
@@ -123,6 +132,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_page_wrong_course(self):
+        """
+            Test render page wrong course
+        """
         url = reverse(
             'completion_view', kwargs={
                 'course_id': 'course-v1:mss+MSS001+2019_2'})
@@ -130,11 +142,17 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_page_no_staff(self):
+        """
+            Test render page when user is not staff
+        """
         url = reverse('completion_view', kwargs={'course_id': self.course.id})
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_data_no_staff(self):
+        """
+            Test get data when user is not staff
+        """
         url = reverse(
             'completion_data_view', kwargs={
                 'course_id': self.course.id})
@@ -142,6 +160,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_render_blockcompletion(self):
+        """
+            Test get data with block completion
+        """
         context_key = LearningContextKey.from_string(str(self.course.id))
         for item in self.items:
             usage_key = item.scope_ids.usage_id
@@ -172,6 +193,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                           'No'])
 
     def test_render_certificate(self):
+        """
+            Test get data with certificate
+        """
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id)
 
