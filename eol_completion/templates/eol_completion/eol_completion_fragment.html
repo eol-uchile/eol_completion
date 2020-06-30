@@ -23,7 +23,7 @@
 <script type="text/javascript" src="${static.url('eol_completion/pdfmake-0.1.36/vfs_fonts.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/Buttons-1.6.1/js/buttons.print.min.js')}"></script>
 <script type="text/javascript" src="${static.url('eol_completion/js/natural.js')}"></script>
-<script type="text/javascript" src="${static.url('eol_completion/js/eol_completion.js')}"></script>
+<!--script type="text/javascript" src="${static.url('eol_completion/js/eol_completion.js')}"></script-->
 <script type="text/javascript" src="${static.url('eol_completion/FixedColumns-3.3.0/js/dataTables.fixedColumns.min.js')}"></script>
 
 <%static:css group='style-course'/>
@@ -108,8 +108,12 @@
                         <thead>
                             <!--Main Header-->
                             <tr>
-                                <th rowspan="3" data-col_from="0" data-col_to="0">Correo</th>
-                                <th rowspan="3" data-col_from="1" data-col_to="1">Estudiante</th>
+                                <% row_len = 3 %>
+                                %if len(content) == 0:
+                                    <% row_len = 1 %>
+                                %endif
+                                <th rowspan="${row_len}" data-col_from="0" data-col_to="0">Correo</th>
+                                <th rowspan="${row_len}" data-col_from="1" data-col_to="1">Estudiante</th>
                                 <% col_len = 2 %>
                                 %for section in content.items():
                                     %if section[1]['type'] == 'section' and section[1]['num_children'] > 0:
@@ -117,66 +121,76 @@
                                         <% col_len = col_len + section[1]['num_children'] +1 %>
                                     %endif
                                 %endfor
-                                <th rowspan="3" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
-                                <th rowspan="3" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
+                                %if len(content) == 0:
+                                    <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Sin Contenido</th>
+                                    <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Total</th>
+                                    <th rowspan="${row_len}" data-col_from="${col_len+2}" data-col_to="${col_len+2}">Certificado Generado</th>
+                                %else:
+                                    <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
+                                    <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
+                                %endif
                             </tr>
                              <!--Secondary Header-->
-                            <tr>
-                                <% i = 1 %>
-                                <% j = 1 %> 
-                                <% point_position = 1 %>
-                                <% first = True %>
-                                <% last = {'num_children':0} %>
-                                %for section in content.items():
-                                    %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
-                                        <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>
-                                        <% j += 1 %>
-                                    %endif
-                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <% last = section[1] %>
-                                    %endif
-                                    %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <% point_position = point_position + last['num_children'] + 1 %>
-                                        <% last = section[1] %>
+                            %if len(content) > 0:
+                                <tr>
+                                    <% i = 1 %>
+                                    <% j = 1 %> 
+                                    <% point_position = 1 %>
+                                    <% first = True %>
+                                    <% last = {'num_children':0} %>
+                                    %for section in content.items():
+                                        %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
+                                            <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>
+                                            <% j += 1 %>
+                                        %endif
+                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                            <% last = section[1] %>
+                                        %endif
+                                        %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                            <% point_position = point_position + last['num_children'] + 1 %>
+                                            <% last = section[1] %>
+                                            <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
+                                            <% i += 1 %>
+                                            <% j= 1 %>    
+                                        %endif
+                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                            <% first = False %>    
+                                        %endif
+                                    %endfor
+                                    <% point_position = point_position + last['num_children'] + 1 %>
+                                    %if len(content) > 0:
                                         <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
-                                        <% i += 1 %>
-                                        <% j= 1 %>    
                                     %endif
-                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <% first = False %>    
-                                    %endif
-                                %endfor
-                                <% point_position = point_position + last['num_children'] + 1 %>
-                                <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
-                            </tr>
-                             <!--Tertiary Header-->
-                            <tr>
-                                <% i = 1 %>
-                                <% j = 1 %>
-                                <% k = 1 %>
-                                <% first = True %>
-                                <% first2 = True %>
-                                %for section in content.items():
-                                    %if not first and section[1]['type'] == 'section':
-                                        <% i += 1 %> 
-                                        <% j = 0 %>
-                                    %endif
-                                    %if not first2 and section[1]['type'] == 'subsection':
-                                        <% j += 1 %>
-                                        <% k = 1 %>
-                                    %endif
-                                    %if section[1]['type'] == 'unit':
-                                        <% first2 = False %> 
-                                        <td title="${section[1]['name']}">
-                                            ${i}.${j}.${k}
-                                        </td>
-                                        <% k += 1 %>
-                                    %endif
-                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <% first = False %>
-                                    %endif
-                                %endfor
-                            </tr>
+                                </tr>
+                                <!--Tertiary Header-->
+                                <tr>
+                                    <% i = 1 %>
+                                    <% j = 1 %>
+                                    <% k = 1 %>
+                                    <% first = True %>
+                                    <% first2 = True %>
+                                    %for section in content.items():
+                                        %if not first and section[1]['type'] == 'section':
+                                            <% i += 1 %> 
+                                            <% j = 0 %>
+                                        %endif
+                                        %if not first2 and section[1]['type'] == 'subsection':
+                                            <% j += 1 %>
+                                            <% k = 1 %>
+                                        %endif
+                                        %if section[1]['type'] == 'unit':
+                                            <% first2 = False %> 
+                                            <td title="${section[1]['name']}">
+                                                ${i}.${j}.${k}
+                                            </td>
+                                            <% k += 1 %>
+                                        %endif
+                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                            <% first = False %>
+                                        %endif
+                                    %endfor
+                                </tr>
+                            %endif
                         </thead>
                         <tbody></tbody>
                         <tfoot id="eol-completion-tfoot"></tfoot>

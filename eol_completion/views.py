@@ -302,7 +302,7 @@ class EolCompletionData(View, Content):
         """
         data = cache.get("eol_completion-" + course_id + "-data")
         if data is None:
-            data = {"data": []}
+            data = {"data": [[False]]}
             try:
                 task_process_tick(request, course_id, display_name_course)
             except AlreadyRunningError:
@@ -346,6 +346,8 @@ class EolCompletionData(View, Content):
                 completion = aux_completion
         completion = [str(x) for x in completion]
         user_tick['completion'] = completion
+        if len(students_id) == 0:
+            user_tick['data'] = [[True]]
         return user_tick
 
     def get_block(self, students_id, course_key):
@@ -411,12 +413,12 @@ class EolCompletionData(View, Content):
         aux_point = str(completed_unit_per_section) + \
             "/" + str(num_units_section)
         data.append(aux_point)
-        if completed_unit_per_section == num_units_section:
+        if completed_unit_per_section == num_units_section and num_units_section > 0:
             aux_completion.append(1)
         else:
             aux_completion.append(0)
         aux_final_point = str(completed_unit) + "/" + str(max_unit)
-        if completed_unit == max_unit:
+        if completed_unit == max_unit and max_unit > 0:
             aux_completion.append(1)
         else:
             aux_completion.append(0)

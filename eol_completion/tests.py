@@ -61,7 +61,38 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.users = [UserFactory.create() for _ in range(USER_COUNT)]
         for user in self.users:
             CourseEnrollmentFactory(user=user, course_id=self.course.id)
-
+        # create a course without content, only student
+        self.course_no_content = CourseFactory.create(
+            org='mnc', course='777', display_name='eol_completion_course2')
+        for user in self.users:
+            CourseEnrollmentFactory(user=user, course_id=self.course_no_content.id)
+        # create a course without student, only content
+        self.course_no_user = CourseFactory.create(
+            org='mnu', course='888', display_name='eol_completion_course3')
+        # Now give it some content
+        with self.store.bulk_operations(self.course_no_user.id, emit_signals=False):
+            chapter2 = ItemFactory.create(
+                parent_location=self.course_no_user.location,
+                category="chapter",
+            )
+            section2 = ItemFactory.create(
+                parent_location=chapter2.location,
+                category="sequential",
+            )
+            subsection2 = ItemFactory.create(
+                parent_location=section2.location,
+                category="vertical",
+            )
+            self.items2 = [
+                ItemFactory.create(
+                    parent_location=subsection2.location,
+                    category="problem"
+                )
+                for __ in range(USER_COUNT - 1)
+            ]
+        # create a empty course
+        self.course_empty = CourseFactory.create(
+            org='mem', course='111', display_name='eol_completion_course4')
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
         with patch('student.models.cc.User.save'):
@@ -73,6 +104,8 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             # Enroll the student in the course
             CourseEnrollmentFactory(
                 user=self.student, course_id=self.course.id)
+            CourseEnrollmentFactory(
+                user=self.student, course_id=self.course_no_content.id)
 
             # Create and Enroll staff user
             self.staff_user = UserFactory(
@@ -87,7 +120,17 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             # Log the student in
             self.client = Client()
             self.assertTrue(self.client.login(username='student', password='test'))
-
+            # Create Super User
+            self.super_user = UserFactory(
+                username='super_user',
+                password='test',
+                email='super@edx.org',
+                is_staff=True)
+            self.super_client = Client()
+            self.assertTrue(
+                self.super_client.login(
+                    username='super_user',
+                    password='test'))
             # Log the user staff in
             self.staff_client = Client()
             self.assertTrue(
@@ -112,7 +155,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 0)
+        self.assertEqual(data['data'],[[False]])
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
@@ -178,7 +221,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 0)
+        self.assertEqual(data['data'],[[False]])
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
@@ -204,7 +247,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 0)
+        self.assertEqual(data['data'],[[False]])
 
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
@@ -212,3 +255,55 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'Si'])
+
+    def test_render_data_no_content(self):
+        """
+            Test get data without content
+        """        
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_no_content.id})
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 12)
+        self.assertEqual(data['completion'], ["0", "0"])
+        self.assertEqual(
+            data['data'][-1], ['student@edx.org', 'student', '0/0', '0/0', 'No'])
+    
+    def test_render_data_no_users(self):
+        """
+            Test get data without users
+        """        
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_no_user.id})
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'], [[True]])
+
+    def test_render_data_course_empty(self):
+        """
+            Test get data with empty course
+        """        
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_empty.id})
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'], [[True]])
+        self.assertEqual(data['completion'], [])
