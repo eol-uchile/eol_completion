@@ -109,7 +109,7 @@
                             <!--Main Header-->
                             <tr>
                                 <% row_len = 3 %>
-                                %if len(content) == 0:
+                                %if max_unit == 0:
                                     <% row_len = 1 %>
                                 %endif
                                 <th rowspan="${row_len}" data-col_from="0" data-col_to="0">Correo</th>
@@ -121,7 +121,7 @@
                                         <% col_len = col_len + section[1]['num_children'] +1 %>
                                     %endif
                                 %endfor
-                                %if len(content) == 0:
+                                %if max_unit == 0:
                                     <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Sin Contenido</th>
                                     <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Total</th>
                                     <th rowspan="${row_len}" data-col_from="${col_len+2}" data-col_to="${col_len+2}">Certificado Generado</th>
@@ -131,7 +131,7 @@
                                 %endif
                             </tr>
                              <!--Secondary Header-->
-                            %if len(content) > 0:
+                            %if max_unit > 0:
                                 <tr>
                                     <% i = 1 %>
                                     <% j = 1 %> 
@@ -158,7 +158,7 @@
                                         %endif
                                     %endfor
                                     <% point_position = point_position + last['num_children'] + 1 %>
-                                    %if len(content) > 0:
+                                    %if max_unit > 0:
                                         <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
                                     %endif
                                 </tr>

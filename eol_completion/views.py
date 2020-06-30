@@ -262,6 +262,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             content, maxn = self.get_content(info, id_course)
 
             data.extend([content])
+            data.extend([maxn])
             cache.set("eol_completion-" + course_id + "-content", data, settings.EOL_COMPLETION_TIME_CACHE)
 
         context = {
@@ -274,7 +275,8 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
                 'completion_data_view',
                 kwargs={
                     'course_id': six.text_type(course_key)}),
-            "content": data[0]}
+            "content": data[0],
+            "max_unit": data[1]}
 
         return context
 
