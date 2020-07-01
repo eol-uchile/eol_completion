@@ -1,9 +1,9 @@
 ## mako
 <%! from django.utils.translation import ugettext as _ %>
 <%namespace name='static' file='/static_content.html'/>
+<%block name="bodyclass">view-in-course</%block>
+<%block name="pagetitle">Seguimiento</%block>
 <%inherit file="/main.html" />
-<%block name="bodyclass">view-new_tab_type is-in-course course</%block>
-<%block name="pagetitle">${_("PAGE NAME")}</%block>
 <%block name="headextra">
 
 <link rel="stylesheet" type="text/css" href="${static.url('eol_completion/DataTables-1.10.20/css/jquery.dataTables.min.css')}"/>
@@ -28,12 +28,45 @@
 
 <%static:css group='style-course'/>
 </%block>
-<%include file="/courseware/course_navigation.html" args="active_page='PAGE-SLUG'" />
+<%include file="/courseware/course_navigation.html" args="active_page='eol_completion'" />
 <style>
-    div.dataTables_wrapper {
+    .content-wrapper {
+        padding: 0px;
+    }
+    .window-wrap {
+        margin-top: -20px;
+    }
+    .wrapper-course-material .course-tabs {
+        padding: 0 20px 10px;
+    }
+    #main div {
+        display:block;
+        border: none;
+        box-shadow: none;
+    }
+    #main .row {
+        display: flex;
+    }
+    #main {
+        border: 1px solid #c8c8c8;
+        margin: -11px 20px 10px;
+        padding: 1em 0;
+    }
+    #main div[class*="col-"] {
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    #main .row {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+    }
+
+    #main div.dataTables_wrapper {
             margin: 0 auto;
         }
-    th, td {
+    #main th, 
+    #main td {
         border-top: 1px solid #dddddd;
         border-bottom: 1px solid #dddddd;
         border-right: 1px solid #dddddd;
@@ -42,10 +75,10 @@
         padding-right: 40px !important;
     }
     
-    th:first-child {
+    #main th:first-child {
         border-left: 1px solid #dddddd;
     }
-    a.novisto {
+    #main a.novisto {
         background-color: #55c0ff;
         box-shadow: 0 2px 0 #efd9d9;
         color: black;
@@ -54,7 +87,7 @@
         text-decoration: none;
     }
 
-    a.visto {
+    #main a.visto {
         background-color: #fbeeee;
         box-shadow: 0 2px 0 #efd9d9;
         color: black;
@@ -62,148 +95,163 @@
         position: relative;
         text-decoration: none;
     }
-    a.visto:hover {
+    #main a.visto:hover {
         background-color: #55c0ff;
         cursor: pointer;
     }
-    a.novisto:hover {
+    #main a.novisto:hover {
         background-color: #fbeeee;
         cursor: pointer;
     }
-    a.novisto:active {
+    #main a.novisto:active {
         box-shadow: none;
         top: 2px;
     }
-    .grade-book-footer{
+    #main .grade-book-footer{
         text-align: center;
     }    
-    li {
+    #main li {
         float: left;
         list-style-type: none;
     }
-    .list-divided .item, ul .item, .list-bulleted .item, ol .item, .list-ordered .item, .list-inline .item, .list-grouped .item, .list .item, .list li, ol li, ul li {
+    #main .list-divided .item, 
+    #main ul .item, 
+    #main .list-bulleted .item, 
+    #main ol .item, 
+    #main .list-ordered .item, 
+    #main .list-inline .item, 
+    #main .list-grouped .item, 
+    #main .list .item, 
+    #main .list li, 
+    #main ol li, 
+    #main ul li {
         display: list-item;
         margin-bottom: 1rem;
         margin-right: 0.5rem;  
     }
 
+    #main .dt-buttons,
+    #main h2.hd-2 {
+        float: none;
+        margin-left: 15px;
+    }
+
+    #main .dataTables_length,
+    #main .dataTables_filter,
+    #main .dataTables_info,
+    #main .dataTables_paginate  {
+        margin: 10px 15px;
+    }
+
 </style>
-<div class="container">
+<main id="main" aria-label="Content" tabindex="-1">
+    <h2 class="hd hd-2 mt-0">Seguimiento de estudiantes</h2>
     <input type="text" name="data_url" id="data_url" value="${data_url}" hidden>
-    <div style="text-align: center;">
-        max_unit: ${max_unit}</br>
-        content:</br>
-        ${content.__dict__}
-    </div>
     <div class="loading" style="text-align: center;">
             Cargando datos de la tabla ...
     </div>
     <div class="eol-completion-error" style="text-align: center;color: red;">
     </div>
-    <div class="teams-wrapper">
-        <main id="main" aria-label="Content" tabindex="-1">
-            <section class="teams-content" style="visibility: hidden;">
-                <div class="dataTables_wrapper">
-                    <div style="padding: 15px;">
-					    Mostrar/Ocultar Sección:
-                        <ul id="botones" style="padding-left: 20px;">
-                        </ul>
-				    </div>
-                    <table id="mytable" class="stripe row-border order-column cell-border" style="width:100%;table-layout:auto; text-align: center;">
-                        <thead>
-                            <!--Main Header-->
-                            <tr>
-                                <% row_len = 3 %>
-                                %if max_unit == 0:
-                                    <% row_len = 1 %>
-                                %endif
-                                <th rowspan="${row_len}" data-col_from="0" data-col_to="0">Correo</th>
-                                <th rowspan="${row_len}" data-col_from="1" data-col_to="1">Estudiante</th>
-                                <% col_len = 2 %>
-                                %for section in content.items():
-                                    %if section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                        <th class="mainhead" colspan="${section[1]['num_children']+1}" data-col_from="${col_len}" data-col_to="${col_len+section[1]['num_children']}">${section[1]['name']}</th>
-                                        <% col_len = col_len + section[1]['num_children'] +1 %>
-                                    %endif
-                                %endfor
-                                %if max_unit == 0:
-                                    <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Sin Contenido</th>
-                                    <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Total</th>
-                                    <th rowspan="${row_len}" data-col_from="${col_len+2}" data-col_to="${col_len+2}">Certificado Generado</th>
-                                %else:
-                                    <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
-                                    <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
-                                %endif
-                            </tr>
-                             <!--Secondary Header-->
-                            %if max_unit > 0:
-                                <tr>
-                                    <% i = 1 %>
-                                    <% j = 1 %> 
-                                    <% point_position = 1 %>
-                                    <% first = True %>
-                                    <% last = {'num_children':0} %>
-                                    %for section in content.items():
-                                        %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
-                                            <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>
-                                            <% j += 1 %>
-                                        %endif
-                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                            <% last = section[1] %>
-                                        %endif
-                                        %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                            <% point_position = point_position + last['num_children'] + 1 %>
-                                            <% last = section[1] %>
-                                            <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
-                                            <% i += 1 %>
-                                            <% j= 1 %>    
-                                        %endif
-                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                            <% first = False %>    
-                                        %endif
-                                    %endfor
-                                    <% point_position = point_position + last['num_children'] + 1 %>
-                                    %if max_unit > 0:
-                                        <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
-                                    %endif
-                                </tr>
-                                <!--Tertiary Header-->
-                                <tr>
-                                    <% i = 1 %>
-                                    <% j = 1 %>
-                                    <% k = 1 %>
-                                    <% first = True %>
-                                    <% first2 = True %>
-                                    %for section in content.items():
-                                        %if not first and section[1]['type'] == 'section':
-                                            <% i += 1 %> 
-                                            <% j = 0 %>
-                                        %endif
-                                        %if not first2 and section[1]['type'] == 'subsection':
-                                            <% j += 1 %>
-                                            <% k = 1 %>
-                                        %endif
-                                        %if section[1]['type'] == 'unit':
-                                            <% first2 = False %> 
-                                            <td title="${section[1]['name']}">
-                                                ${i}.${j}.${k}
-                                            </td>
-                                            <% k += 1 %>
-                                        %endif
-                                        %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
-                                            <% first = False %>
-                                        %endif
-                                    %endfor
-                                </tr>
-                            %endif
-                        </thead>
-                        <tbody></tbody>
-                        <tfoot id="eol-completion-tfoot"></tfoot>
-                    </table>
-                </div>
-            </section>
-            <div id="eol-completion-time" class="grade-book-footer">
+    <section class="teams-content" style="visibility: hidden;">
+        <div class="dataTables_wrapper">
+            <div style="padding: 15px;">
+                Mostrar/Ocultar Sección:
+                <ul id="botones" style="padding-left: 20px;">
+                </ul>
             </div>
-        </main>
+            <table id="mytable" class="stripe row-border order-column cell-border" style="width:100%;table-layout:auto; text-align: center;">
+                <thead>
+                    <!--Main Header-->
+                    <tr>
+                        <% row_len = 3 %>
+                        %if max_unit == 0:
+                            <% row_len = 1 %>
+                        %endif
+                        <th rowspan="${row_len}" data-col_from="0" data-col_to="0">Correo</th>
+                        <th rowspan="${row_len}" data-col_from="1" data-col_to="1">Estudiante</th>
+                        <% col_len = 2 %>
+                        %for section in content.items():
+                            %if section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                <th class="mainhead" colspan="${section[1]['num_children']+1}" data-col_from="${col_len}" data-col_to="${col_len+section[1]['num_children']}">${section[1]['name']}</th>
+                                <% col_len = col_len + section[1]['num_children'] +1 %>
+                            %endif
+                        %endfor
+                        %if max_unit == 0:
+                            <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Sin Contenido</th>
+                            <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Total</th>
+                            <th rowspan="${row_len}" data-col_from="${col_len+2}" data-col_to="${col_len+2}">Certificado Generado</th>
+                        %else:
+                            <th rowspan="${row_len}" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
+                            <th rowspan="${row_len}" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
+                        %endif
+                    </tr>
+                        <!--Secondary Header-->
+                    %if max_unit > 0:
+                        <tr>
+                            <% i = 1 %>
+                            <% j = 1 %> 
+                            <% point_position = 1 %>
+                            <% first = True %>
+                            <% last = {'num_children':0} %>
+                            %for section in content.items():
+                                %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
+                                    <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>
+                                    <% j += 1 %>
+                                %endif
+                                %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                    <% last = section[1] %>
+                                %endif
+                                %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                    <% point_position = point_position + last['num_children'] + 1 %>
+                                    <% last = section[1] %>
+                                    <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
+                                    <% i += 1 %>
+                                    <% j= 1 %>    
+                                %endif
+                                %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                    <% first = False %>    
+                                %endif
+                            %endfor
+                            <% point_position = point_position + last['num_children'] + 1 %>
+                            %if max_unit > 0:
+                                <td rowspan="2" class="pto" id="${point_position}">Unidades</br>Completadas</td>
+                            %endif
+                        </tr>
+                        <!--Tertiary Header-->
+                        <tr>
+                            <% i = 1 %>
+                            <% j = 1 %>
+                            <% k = 1 %>
+                            <% first = True %>
+                            <% first2 = True %>
+                            %for section in content.items():
+                                %if not first and section[1]['type'] == 'section':
+                                    <% i += 1 %> 
+                                    <% j = 0 %>
+                                %endif
+                                %if not first2 and section[1]['type'] == 'subsection':
+                                    <% j += 1 %>
+                                    <% k = 1 %>
+                                %endif
+                                %if section[1]['type'] == 'unit':
+                                    <% first2 = False %> 
+                                    <td title="${section[1]['name']}">
+                                        ${i}.${j}.${k}
+                                    </td>
+                                    <% k += 1 %>
+                                %endif
+                                %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                    <% first = False %>
+                                %endif
+                            %endfor
+                        </tr>
+                    %endif
+                </thead>
+                <tbody></tbody>
+                <tfoot id="eol-completion-tfoot"></tfoot>
+            </table>
+        </div>
+    </section>
+    <div id="eol-completion-time" class="grade-book-footer">
     </div>
-</div>
+</main>

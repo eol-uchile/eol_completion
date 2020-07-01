@@ -2,4 +2,4 @@
 
 
 def plugin_settings(settings):
-    settings.EOL_COMPLETION_TIME_CACHE = 20
+    settings.EOL_COMPLETION_TIME_CACHE = 300
