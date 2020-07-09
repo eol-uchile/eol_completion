@@ -9,7 +9,6 @@ from django.conf import settings
 from datetime import datetime
 from courseware.courses import get_course_with_access
 from django.template.loader import render_to_string
-from django.shortcuts import render_to_response
 from web_fragments.fragment import Fragment
 from django.core.cache import cache
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
@@ -74,16 +73,22 @@ def task_get_tick(
         start_time)
 
     store = modulestore()
-    # Dictionary with all course blocks
-    info = Content().dump_module(store.get_course(course_key))
-    id_course = str(BlockUsageLocator(course_key, "course", "course"))
-    if 'i4x://' in id_course:
-        id_course = str(
-            BlockUsageLocator(
-                course_key,
-                "course",
-                display_name_course))
-    content, max_unit = Content().get_content(info, id_course)
+    data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
+    if data_content is None:
+        info = Content().dump_module(store.get_course(course_key))
+        id_course = str(BlockUsageLocator(course_key, "course", "course"))
+        if 'i4x://' in id_course:
+            id_course = str(
+                BlockUsageLocator(
+                    course_key,
+                    "course",
+                    display_name_course))
+        content, max_unit = Content().get_content(info, id_course)
+    else:
+        # Dictionary with all course blocks
+        info = data_content[2]
+        content = data_content[0]
+        max_unit = data_content[1]
     data = EolCompletionData().get_ticks(
         content, info, enrolled_students, course_key, max_unit)
     times = datetime.now()
@@ -263,6 +268,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
 
             data.extend([content])
             data.extend([maxn])
+            data.extend([info])
             cache.set("eol_completion-" + course_id + "-content", data, settings.EOL_COMPLETION_TIME_CACHE)
 
         context = {
