@@ -240,7 +240,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             Test get data with certificate
         """
         GeneratedCertificate.objects.create(
-            user=self.student, course_id=self.course.id)
+            user=self.student, course_id=self.course.id, status=u'downloadable')
 
         url = reverse(
             'completion_data_view', kwargs={
@@ -255,6 +255,27 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'Si'])
+
+    def test_render_certificate_unavailable(self):
+        """
+            Test get data with unavailable certificate
+        """
+        GeneratedCertificate.objects.create(
+            user=self.student, course_id=self.course.id, status=u'unavailable')
+
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.staff_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(
+            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'No'])
 
     def test_render_data_no_content(self):
         """

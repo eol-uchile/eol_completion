@@ -445,7 +445,7 @@ class EolCompletionData(View, Content):
         """
             Check if users has generated a certificate
         """
-        certificates = GeneratedCertificate.objects.filter(
+        certificates = GeneratedCertificate.objects.filter(status='downloadable',
             user_id__in=students_id, course_id=course_id).values("user_id")
         cer_students_id = [x["user_id"] for x in certificates]
 
