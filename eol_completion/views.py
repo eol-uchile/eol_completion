@@ -38,8 +38,11 @@ from django.utils.translation import ugettext_noop
 from pytz import UTC
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from numpy import sum
+from django.core.exceptions import FieldError
+import logging
 # Create your views here.
 
+logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
 INHERITED_FILTER_LIST = ['children', 'xml_attributes']
 
@@ -60,11 +63,16 @@ def task_get_tick(
         action_name):
     course_key = course_id
     display_name_course = task_input["display_name"]
-    enrolled_students = User.objects.filter(
-        courseenrollment__course_id=course_key,
-        courseenrollment__is_active=1
-    ).order_by('username').values('id', 'username', 'email')
-
+    try:
+        enrolled_students = User.objects.filter(
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1
+        ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
+    except FieldError:
+        enrolled_students = User.objects.filter(
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1
+        ).order_by('username').values('id', 'username', 'email')
     start_time = time()
     start_date = datetime.now(UTC)
     task_progress = TaskProgress(
@@ -334,6 +342,7 @@ class EolCompletionData(View, Content):
         students_id = [x['id'] for x in enrolled_students]
         students_username = [x['username'] for x in enrolled_students]
         students_email = [x['email'] for x in enrolled_students]
+        students_rut = [x['edxloginuser__run'] for x in enrolled_students if 'edxloginuser__run' in x]
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
@@ -344,6 +353,10 @@ class EolCompletionData(View, Content):
             # and number of completed units
             data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
+            if len(students_rut) > 0:
+                aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
+            else:
+                aux_user_tick.appendleft('')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')

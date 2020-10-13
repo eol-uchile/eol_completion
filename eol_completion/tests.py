@@ -162,7 +162,31 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'No'])
+            data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
+
+    def test_render_data_with_rut(self):
+        """
+            Test get data normal process with edxloginuser
+        """
+        try:
+            from unittest.case import SkipTest
+            from uchileedxlogin.models import EdxLoginUser
+        except ImportError:
+            self.skipTest("import error uchileedxlogin")
+        EdxLoginUser.objects.create(user=self.student, run='000000001K')
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.staff_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(
+            data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
     def test_render_data_wrong_course(self):
         """
@@ -230,6 +254,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(data['data'][-1],
                          ['student@edx.org',
                           'student',
+                          '',
                           '&#10004;',
                           '1/1',
                           '1/1',
@@ -254,7 +279,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'Si'])
+            data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'Si'])
 
     def test_render_certificate_unavailable(self):
         """
@@ -275,7 +300,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 13)
         self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '', '0/1', '0/1', 'No'])
+            data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
     def test_render_data_no_content(self):
         """
@@ -294,7 +319,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['completion'], ["0", "0"])
         self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '0/0', '0/0', 'No'])
+            data['data'][-1], ['student@edx.org', 'student', '', '0/0', '0/0', 'No'])
     
     def test_render_data_no_users(self):
         """
