@@ -60,12 +60,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         # Create users, enroll
         self.users = [UserFactory.create() for _ in range(USER_COUNT)]
         for user in self.users:
-            CourseEnrollmentFactory(user=user, course_id=self.course.id)
+            CourseEnrollmentFactory(user=user, course_id=self.course.id, mode='honor')
         # create a course without content, only student
         self.course_no_content = CourseFactory.create(
             org='mnc', course='777', display_name='eol_completion_course2')
         for user in self.users:
-            CourseEnrollmentFactory(user=user, course_id=self.course_no_content.id)
+            CourseEnrollmentFactory(user=user, course_id=self.course_no_content.id, mode='honor')
         # create a course without student, only content
         self.course_no_user = CourseFactory.create(
             org='mnu', course='888', display_name='eol_completion_course3')
@@ -103,9 +103,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 email='student@edx.org')
             # Enroll the student in the course
             CourseEnrollmentFactory(
-                user=self.student, course_id=self.course.id)
+                user=self.student, course_id=self.course.id, mode='honor')
             CourseEnrollmentFactory(
-                user=self.student, course_id=self.course_no_content.id)
+                user=self.student, course_id=self.course_no_content.id, mode='honor')
 
             # Create and Enroll staff user
             self.staff_user = UserFactory(
@@ -114,7 +114,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 email='staff@edx.org')
             CourseEnrollmentFactory(
                 user=self.staff_user,
-                course_id=self.course.id)
+                course_id=self.course.id, mode='audit')
             CourseStaffRole(self.course.id).add_users(self.staff_user)
 
             # Log the student in
@@ -160,7 +160,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
@@ -184,7 +184,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
@@ -250,7 +250,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['data'][-1],
                          ['student@edx.org',
                           'student',
@@ -277,7 +277,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'Si'])
 
@@ -298,7 +298,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 13)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
