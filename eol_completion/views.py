@@ -63,6 +63,7 @@ def task_get_tick(
         action_name):
     course_key = course_id
     display_name_course = task_input["display_name"]
+    # try to get rut from edxloginuser model if this dont exists only get id, username and email
     try:
         enrolled_students = User.objects.filter(
             courseenrollment__course_id=course_key,
