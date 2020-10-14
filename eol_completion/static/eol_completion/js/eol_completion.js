@@ -37,7 +37,7 @@ function CompletionTable(data){
             $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' <li><a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a></li>'
         }
         var footer = $('#eol-completion-tfoot')[0];
-        footer_aux = "<tr><th hidden></th><th>Total</th>";
+        footer_aux = "<tr><th hidden></th><th></th><th>Total</th>";
         for (j = 0; j <data["completion"].length; j++) {  
             footer_aux = footer_aux + "<th>" + data["completion"][j] + "</th>";
         }
@@ -45,7 +45,7 @@ function CompletionTable(data){
     }
     else{
         var footer = $('#eol-completion-tfoot')[0];
-        footer.innerHTML = "<tr><th></th><th>Total</th><th></th><th></th><th></th></tr>";
+        footer.innerHTML = "<tr><th hidden></th><th></th><th>Total</th><th></th><th></th><th></th></tr>";
     }
     var dataTable = []
         if (data["data"][0][0] != true){

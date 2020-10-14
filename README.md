@@ -2,6 +2,11 @@
 
 Adding student units tracking.
 
+# Install
+
+    docker-compose exec lms pip install -e /openedx/requirements/eol_completion
+    docker-compose exec lms_worker pip install -e /openedx/requirements/eol_completion
+
 ## TESTS
 **Prepare tests:**
 
@@ -12,4 +17,4 @@ Adding student units tracking.
 
 -Only verify if unit childrens are completed with BlockCompletion
 
--Show Certificate was genereated if this exist in GeneratedCertificate model
+-Show Certificate was genereated if this exist in GeneratedCertificate model with status='downloadable'
