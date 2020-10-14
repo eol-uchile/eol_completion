@@ -345,7 +345,7 @@ class EolCompletionData(View, Content):
         students_id = [x['id'] for x in enrolled_students]
         students_username = [x['username'] for x in enrolled_students]
         students_email = [x['email'] for x in enrolled_students]
-        students_rut = [x['edxloginuser__run'] for x in enrolled_students if 'edxloginuser__run' in x]
+        students_rut = [x['edxloginuser__run'] if 'edxloginuser__run' in x else '' for x in enrolled_students]
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
@@ -356,10 +356,7 @@ class EolCompletionData(View, Content):
             # and number of completed units
             data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
-            if len(students_rut) > 0:
-                aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
-            else:
-                aux_user_tick.appendleft('')
+            aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
