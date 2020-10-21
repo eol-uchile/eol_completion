@@ -350,7 +350,6 @@ class EolCompletionData(View, Content):
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
         completion = []
-        cert_len = 0
         for user in students_id:
             i += 1
             # Get a list of true/false if they completed the units
@@ -360,18 +359,17 @@ class EolCompletionData(View, Content):
             aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
-            cert = 'No'
-            if user in certificate:
-                cert = 'Si'
-                cert_len += 1
-            aux_user_tick.append(cert)
+            aux_user_tick.append('Si' if user in certificate else 'No')
             user_tick['data'].append(list(aux_user_tick))
+            if user in certificate:
+                aux_completion.append(1)
+            else:
+                aux_completion.append(0)
             if len(completion) != 0:
                 completion = sum([completion, aux_completion], 0)
             else:
                 completion = aux_completion
         completion = [str(x) for x in completion]
-        completion.append(str(cert_len))
         user_tick['completion'] = completion
         if len(students_id) == 0:
             user_tick['data'] = [[True]]
