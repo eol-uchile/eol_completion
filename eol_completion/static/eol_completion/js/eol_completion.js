@@ -36,12 +36,14 @@ function CompletionTable(data){
             var aux_j = main_header[j].dataset.col_to
             $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' <li><a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a></li>'
         }
-        var footer = $('#eol-completion-tfoot')[0];
-        footer_aux = "<tr><th hidden></th><th>Total</th><th></th>";
-        for (j = 0; j <data["completion"].length; j++) {  
-            footer_aux = footer_aux + "<th>" + data["completion"][j] + "</th>";
+        if (data["completion"].length > 0){
+            var footer = $('#eol-completion-tfoot')[0];
+            footer_aux = "<tr><th hidden></th><th>Total</th><th></th>";
+            for (j = 0; j <data["completion"].length; j++) {  
+                footer_aux = footer_aux + "<th>" + data["completion"][j] + "</th>";
+            }
+            footer.innerHTML = footer_aux +"</tr>";
         }
-        footer.innerHTML = footer_aux +"</tr>";
     }
     else{
         var footer = $('#eol-completion-tfoot')[0];
