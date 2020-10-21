@@ -361,6 +361,10 @@ class EolCompletionData(View, Content):
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
             user_tick['data'].append(list(aux_user_tick))
+            if user in certificate:
+                aux_completion.append(1)
+            else:
+                aux_completion.append(0)
             if len(completion) != 0:
                 completion = sum([completion, aux_completion], 0)
             else:
