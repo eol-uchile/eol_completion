@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
+
 
 import six
 import json
@@ -9,13 +9,12 @@ from django.conf import settings
 from datetime import datetime
 from courseware.courses import get_course_with_access
 from django.template.loader import render_to_string
-from django.shortcuts import render_to_response
 from web_fragments.fragment import Fragment
 from django.core.cache import cache
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from xblock.fields import Scope
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.keys import CourseKey, UsageKey, LearningContextKey
 from opaque_keys import InvalidKeyError
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -39,8 +38,11 @@ from django.utils.translation import ugettext_noop
 from pytz import UTC
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from numpy import sum
+from django.core.exceptions import FieldError
+import logging
 # Create your views here.
 
+logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
 INHERITED_FILTER_LIST = ['children', 'xml_attributes']
 
@@ -61,11 +63,19 @@ def task_get_tick(
         action_name):
     course_key = course_id
     display_name_course = task_input["display_name"]
-    enrolled_students = User.objects.filter(
-        courseenrollment__course_id=course_key,
-        courseenrollment__is_active=1
-    ).order_by('username').values('id', 'username', 'email')
-
+    # try to get rut from edxloginuser model if this dont exists only get id, username and email
+    try:
+        enrolled_students = User.objects.filter(
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1,
+            courseenrollment__mode='honor'
+        ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
+    except FieldError:
+        enrolled_students = User.objects.filter(
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1,
+            courseenrollment__mode='honor'
+        ).order_by('username').values('id', 'username', 'email')
     start_time = time()
     start_date = datetime.now(UTC)
     task_progress = TaskProgress(
@@ -74,16 +84,22 @@ def task_get_tick(
         start_time)
 
     store = modulestore()
-    # Dictionary with all course blocks
-    info = Content().dump_module(store.get_course(course_key))
-    id_course = str(BlockUsageLocator(course_key, "course", "course"))
-    if 'i4x://' in id_course:
-        id_course = str(
-            BlockUsageLocator(
-                course_key,
-                "course",
-                display_name_course))
-    content, max_unit = Content().get_content(info, id_course)
+    data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
+    if data_content is None:
+        info = Content().dump_module(store.get_course(course_key))
+        id_course = str(BlockUsageLocator(course_key, "course", "course"))
+        if 'i4x://' in id_course:
+            id_course = str(
+                BlockUsageLocator(
+                    course_key,
+                    "course",
+                    display_name_course))
+        content, max_unit = Content().get_content(info, id_course)
+    else:
+        # Dictionary with all course blocks
+        info = data_content[2]
+        content = data_content[0]
+        max_unit = data_content[1]
     data = EolCompletionData().get_ticks(
         content, info, enrolled_students, course_key, max_unit)
     times = datetime.now()
@@ -215,7 +231,7 @@ class Content(object):
                     return field.values != field.default
 
             inherited_metadata = {field.name: field.read_json(
-                module) for field in module.fields.values() if is_inherited(field)}
+                module) for field in list(module.fields.values()) if is_inherited(field)}
             destination[six.text_type(
                 module.location)]['inherited_metadata'] = inherited_metadata
 
@@ -241,7 +257,9 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         return fragment
 
     def get_context(self, request, course_id, course, course_key):
-
+        """
+            Returns headers table
+        """
         data = cache.get("eol_completion-" + course_id + "-content")
         if data is None:
             store = modulestore()
@@ -260,6 +278,8 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             content, maxn = self.get_content(info, id_course)
 
             data.extend([content])
+            data.extend([maxn])
+            data.extend([info])
             cache.set("eol_completion-" + course_id + "-content", data, settings.EOL_COMPLETION_TIME_CACHE)
 
         context = {
@@ -272,7 +292,8 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
                 'completion_data_view',
                 kwargs={
                     'course_id': six.text_type(course_key)}),
-            "content": data[0]}
+            "content": data[0],
+            "max_unit": data[1]}
 
         return context
 
@@ -295,9 +316,12 @@ class EolCompletionData(View, Content):
         return JsonResponse(context)
 
     def get_context(self, request, course_id, display_name_course):
+        """
+            Return eol completion data
+        """
         data = cache.get("eol_completion-" + course_id + "-data")
         if data is None:
-            data = {"data": []}
+            data = {"data": [[False]]}
             try:
                 task_process_tick(request, course_id, display_name_course)
             except AlreadyRunningError:
@@ -314,13 +338,14 @@ class EolCompletionData(View, Content):
             course_key,
             max_unit):
         """
-            Dictionary of students with true/false if students completed the units
+            Dictionary of students with ticks if students completed the units
         """
         user_tick = defaultdict(list)
 
         students_id = [x['id'] for x in enrolled_students]
         students_username = [x['username'] for x in enrolled_students]
         students_email = [x['email'] for x in enrolled_students]
+        students_rut = [x['edxloginuser__run'] if 'edxloginuser__run' in x else '' for x in enrolled_students]
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
@@ -331,25 +356,33 @@ class EolCompletionData(View, Content):
             # and number of completed units
             data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
+            aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
             user_tick['data'].append(list(aux_user_tick))
+            if user in certificate:
+                aux_completion.append(1)
+            else:
+                aux_completion.append(0)
             if len(completion) != 0:
                 completion = sum([completion, aux_completion], 0)
             else:
                 completion = aux_completion
         completion = [str(x) for x in completion]
         user_tick['completion'] = completion
+        if len(students_id) == 0:
+            user_tick['data'] = [[True]]
         return user_tick
 
     def get_block(self, students_id, course_key):
         """
             Get all completed students block
         """
+        context_key = LearningContextKey.from_string(str(course_key))
         aux_blocks = BlockCompletion.objects.filter(
             user_id__in=students_id,
-            course_key=course_key,
+            context_key=context_key,
             completion=1.0).values(
             'user_id',
             'block_key')
@@ -370,7 +403,7 @@ class EolCompletionData(View, Content):
         completed_unit_per_section = 0  # Number of completed units per section
         num_units_section = 0  # Number of units per section
         first = True
-        for unit in content.items():
+        for unit in list(content.items()):
             if unit[1]['type'] == 'unit':
                 unit_info = info[unit[1]['id']]
                 blocks_unit = unit_info['children']
@@ -405,12 +438,12 @@ class EolCompletionData(View, Content):
         aux_point = str(completed_unit_per_section) + \
             "/" + str(num_units_section)
         data.append(aux_point)
-        if completed_unit_per_section == num_units_section:
+        if completed_unit_per_section == num_units_section and num_units_section > 0:
             aux_completion.append(1)
         else:
             aux_completion.append(0)
         aux_final_point = str(completed_unit) + "/" + str(max_unit)
-        if completed_unit == max_unit:
+        if completed_unit == max_unit and max_unit > 0:
             aux_completion.append(1)
         else:
             aux_completion.append(0)
@@ -429,7 +462,7 @@ class EolCompletionData(View, Content):
         """
             Check if users has generated a certificate
         """
-        certificates = GeneratedCertificate.objects.filter(
+        certificates = GeneratedCertificate.objects.filter(status='downloadable',
             user_id__in=students_id, course_id=course_id).values("user_id")
         cer_students_id = [x["user_id"] for x in certificates]
 
