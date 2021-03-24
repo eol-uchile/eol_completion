@@ -20,6 +20,7 @@ from completion import models
 from opaque_keys.edx.keys import CourseKey, LearningContextKey
 from courseware.courses import get_course_with_access
 from lms.djangoapps.certificates.models import GeneratedCertificate
+from common.djangoapps.student.tests.factories import CourseAccessRoleFactory
 from six import text_type
 from six.moves import range
 import json
@@ -117,6 +118,22 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 course_id=self.course.id, mode='audit')
             CourseStaffRole(self.course.id).add_users(self.staff_user)
 
+            # Create and Enroll data researcher user
+            self.data_researcher_user = UserFactory(
+                username='data_researcher_user',
+                password='test',
+                email='data.researcher@edx.org')
+            CourseEnrollmentFactory(
+                user=self.data_researcher_user,
+                course_id=self.course.id, mode='audit')
+            CourseAccessRoleFactory(
+                course_id=self.course.id,
+                user=self.data_researcher_user,
+                role='data_researcher',
+                org=self.course.id.org
+            )
+            self.client_data_researcher = Client()
+            self.assertTrue(self.client_data_researcher.login(username='data_researcher_user', password='test'))
             # Log the student in
             self.client = Client()
             self.assertTrue(self.client.login(username='student', password='test'))
@@ -145,6 +162,32 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         url = reverse('completion_view', kwargs={'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
+    
+    def test_render_page_data_researcher_user(self):
+        """
+            Test reder page normal process with data_researcher_user
+        """
+        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        self.response = self.client_data_researcher.get(url)
+        self.assertEqual(self.response.status_code, 200)
+
+    def test_render_data_researcher_user(self):
+        """
+            Test get data normal process with data_researcher_user
+        """
+        url = reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id})
+        self.response = self.client_data_researcher.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.client_data_researcher.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 12)
+        self.assertEqual(
+            data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
     def test_render_data(self):
         """

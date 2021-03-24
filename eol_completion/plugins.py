@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_noop
 from courseware.tabs import EnrolledTab
 from xmodule.tabs import TabFragmentViewMixin
 from lms.djangoapps.courseware.access import has_access
+from lms.djangoapps.instructor import permissions
 
 
 class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
@@ -24,4 +25,7 @@ class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
         """
         Returns true if the specified user has staff access.
         """
-        return bool(user and has_access(user, 'staff', course, course.id))
+        data_researcher_access = False
+        if user is not None:
+            data_researcher_access = user.has_perm(permissions.CAN_RESEARCH, course.id)
+        return bool(user and (has_access(user, 'staff', course, course.id) or data_researcher_access))
