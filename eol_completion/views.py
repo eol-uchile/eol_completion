@@ -30,6 +30,7 @@ from opaque_keys.edx.locator import CourseLocator, BlockUsageLocator
 from celery import current_task, task
 from lms.djangoapps.instructor_task.tasks_base import BaseInstructorTask
 from lms.djangoapps.instructor_task.api_helper import submit_task
+from lms.djangoapps.instructor import permissions
 from functools import partial
 from time import time
 from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task, TaskProgress
@@ -122,7 +123,7 @@ def task_process_tick(request, course_id, display_name_course):
     task_type = 'EOL_Completion'
     task_class = process_tick
     task_input = {'course_id': course_id, 'display_name': display_name_course}
-    task_key = ""
+    task_key = "course_id"
 
     return submit_task(
         request,
@@ -247,7 +248,8 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         course = get_course_with_access(request.user, "load", course_key)
 
         staff_access = bool(has_access(request.user, 'staff', course))
-        if not staff_access:
+        data_researcher_access = request.user.has_perm(permissions.CAN_RESEARCH, course_key)
+        if not (staff_access or data_researcher_access):
             raise Http404()
         context = self.get_context(request, course_id, course, course_key)
 
@@ -308,7 +310,8 @@ class EolCompletionData(View, Content):
         course = get_course_with_access(request.user, "load", course_key)
         display_name_course = course.display_name
         staff_access = bool(has_access(request.user, 'staff', course))
-        if not staff_access:
+        data_researcher_access = request.user.has_perm(permissions.CAN_RESEARCH, course_key)
+        if not (staff_access or data_researcher_access):
             raise Http404()
 
         context = self.get_context(request, course_id, display_name_course)

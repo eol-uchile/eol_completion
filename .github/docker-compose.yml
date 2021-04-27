@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   lms:
-    image: eoluchile/edx-platform:testing-juniper
+    image: eoluchile/edx-platform:testing-koa
     volumes:
       - ../:/openedx/requirements/eol_completion
     depends_on:
