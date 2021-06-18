@@ -7,20 +7,19 @@ from django.test import TestCase, Client
 from django.test.client import RequestFactory
 from django.urls import reverse
 from django.contrib.auth.models import User
-from util.testing import UrlResetMixin
+from common.djangoapps.util.testing import UrlResetMixin
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-from student.roles import CourseStaffRole
-from student.tests.factories import UserFactory, CourseEnrollmentFactory
+from common.djangoapps.student.roles import CourseStaffRole
+from common.djangoapps.student.tests.factories import UserFactory, CourseEnrollmentFactory, CourseAccessRoleFactory
 from capa.tests.response_xml_factory import StringResponseXMLFactory
 from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
 from completion import models
 from opaque_keys.edx.keys import CourseKey, LearningContextKey
-from courseware.courses import get_course_with_access
+from lms.djangoapps.courseware.courses import get_course_with_access
 from lms.djangoapps.certificates.models import GeneratedCertificate
-from common.djangoapps.student.tests.factories import CourseAccessRoleFactory
 from six import text_type
 from six.moves import range
 import json
@@ -96,7 +95,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             org='mem', course='111', display_name='eol_completion_course4')
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
-        with patch('student.models.cc.User.save'):
+        with patch('common.djangoapps.student.models.cc.User.save'):
             # Create the student
             self.student = UserFactory(
                 username='student',

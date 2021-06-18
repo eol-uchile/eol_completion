@@ -7,7 +7,7 @@ import json
 import math
 from django.conf import settings
 from datetime import datetime
-from courseware.courses import get_course_with_access
+from lms.djangoapps.courseware.courses import get_course_with_access
 from django.template.loader import render_to_string
 from web_fragments.fragment import Fragment
 from django.core.cache import cache
@@ -21,7 +21,7 @@ from django.urls import reverse
 from xblock_discussion import DiscussionXBlock
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.inheritance import compute_inherited_metadata, own_metadata
-from courseware.access import has_access, get_user_role
+from lms.djangoapps.courseware.access import has_access, get_user_role
 from completion.models import BlockCompletion
 from collections import OrderedDict, defaultdict, deque
 from django.http import HttpResponse, Http404, HttpResponseServerError, JsonResponse

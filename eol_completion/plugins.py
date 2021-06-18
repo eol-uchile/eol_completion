@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.utils.translation import ugettext_noop
 
-from courseware.tabs import EnrolledTab
+from lms.djangoapps.courseware.tabs import EnrolledTab
 from xmodule.tabs import TabFragmentViewMixin
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.instructor import permissions
