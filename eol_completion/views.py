@@ -68,14 +68,12 @@ def task_get_tick(
     try:
         enrolled_students = User.objects.filter(
             courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1,
-            courseenrollment__mode='honor'
+            courseenrollment__is_active=1
         ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
     except FieldError:
         enrolled_students = User.objects.filter(
             courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1,
-            courseenrollment__mode='honor'
+            courseenrollment__is_active=1
         ).order_by('username').values('id', 'username', 'email')
     start_time = time()
     start_date = datetime.now(UTC)
