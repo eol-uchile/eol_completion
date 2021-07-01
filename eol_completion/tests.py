@@ -185,7 +185,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.client_data_researcher.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 12)
+        self.assertEqual(len(data['data']), 14)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
