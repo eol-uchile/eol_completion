@@ -121,7 +121,7 @@ def task_process_tick(request, course_id, display_name_course):
     task_type = 'EOL_Completion'
     task_class = process_tick
     task_input = {'course_id': course_id, 'display_name': display_name_course}
-    task_key = "course_id"
+    task_key = course_id
 
     return submit_task(
         request,
