@@ -35,6 +35,7 @@ from functools import partial
 from time import time
 from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task, TaskProgress
 from django.db import IntegrityError, transaction
+from django.db.models import Max
 from django.utils.translation import ugettext_noop
 from pytz import UTC
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
@@ -46,7 +47,7 @@ import logging
 logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
 INHERITED_FILTER_LIST = ['children', 'xml_attributes']
-
+LIMIT_STUDENTS = 10000
 
 @task(base=BaseInstructorTask, queue='edx.lms.core.low')
 def process_tick(entry_id, xmodule_instance_args):
@@ -106,6 +107,7 @@ def task_get_tick(
     times = datetime.now()
     times = times.strftime("%d/%m/%Y, %H:%M:%S")
     data['time'] = times
+    data['is_bigcourse'] = False
     data['time_queue'] = str(settings.EOL_COMPLETION_TIME_CACHE / 60)
     current_step = {'step': 'Uploading Data Eol Completion'}
     cache.set(
@@ -123,7 +125,7 @@ def task_process_tick(request, course_id, display_name_course):
     task_type = 'EOL_Completion'
     task_class = process_tick
     task_input = {'course_id': course_id, 'display_name': display_name_course}
-    task_key = "course_id"
+    task_key = course_id
 
     return submit_task(
         request,
@@ -251,10 +253,21 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         data_researcher_access = request.user.has_perm(permissions.CAN_RESEARCH, course_key)
         if not (staff_access or data_researcher_access):
             raise Http404()
-        context = self.get_context(request, course_id, course, course_key)
-
-        html = render_to_string(
+        limit_student = LIMIT_STUDENTS
+        if hasattr(settings, 'EOL_COMPLETION_LIMIT_STUDENT'):
+            limit_student = settings.EOL_COMPLETION_LIMIT_STUDENT 
+        is_big = limit_student < User.objects.filter(
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1
+        ).count()
+        if not is_big:
+            context = self.get_context(request, course_id, course, course_key)
+            html = render_to_string(
             'eol_completion/eol_completion_fragment.html', context)
+        else:
+            context = self.get_context_big_course(course, course_key)
+            html = render_to_string(
+                'eol_completion/eol_completion_bigcourse.html', context)
         fragment = Fragment(html)
         return fragment
 
@@ -290,15 +303,31 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
                 'completion_view',
                 kwargs={
                     'course_id': six.text_type(course_key)}),
-            'data_url': reverse(
+            'data_url': '{}?is_bigcourse=0'.format(reverse(
                 'completion_data_view',
                 kwargs={
-                    'course_id': six.text_type(course_key)}),
+                    'course_id': six.text_type(course_key)})),
             "content": data[0],
             "max_unit": data[1]}
 
         return context
 
+    def get_context_big_course(self, course, course_key):
+        """
+            .
+        """
+        context = {
+            "course": course,
+            'page_url': reverse(
+                'completion_view',
+                kwargs={
+                    'course_id': six.text_type(course_key)}),
+            'data_url': '{}?is_bigcourse=1'.format(reverse(
+                'completion_data_view',
+                kwargs={
+                    'course_id': six.text_type(course_key)})),
+            }
+        return context
 
 class EolCompletionData(View, Content):
     @transaction.non_atomic_requests
@@ -306,6 +335,10 @@ class EolCompletionData(View, Content):
         return super(EolCompletionData, self).dispatch(args, **kwargs)
 
     def get(self, request, course_id, **kwargs):
+        is_bigcourse = request.GET.get('is_bigcourse', None)
+        if is_bigcourse is None or is_bigcourse not in ['1','0']:
+            logger.error('EolCompletion - Error params, is_bigcourse is not defined or is wrong, is_bigcourse={}'.format(is_bigcourse))
+            raise Http404()
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, "load", course_key)
         display_name_course = course.display_name
@@ -314,7 +347,10 @@ class EolCompletionData(View, Content):
         if not (staff_access or data_researcher_access):
             raise Http404()
 
-        context = self.get_context(request, course_id, display_name_course)
+        if is_bigcourse == '1':
+            context = self.get_context_big_course(request, course_id, display_name_course)
+        else:
+            context = self.get_context(request, course_id, display_name_course)
 
         return JsonResponse(context)
 
@@ -332,6 +368,37 @@ class EolCompletionData(View, Content):
         context = data
 
         return context
+
+    def get_context_big_course(self, request, course_id, display_name_course):
+        """
+            select uch.run, max(modified) as last_completed, u.last_login from completion_blockcompletion as cb
+            LEFT JOIN auth_user as u ON u.id = cb.user_id
+            LEFT JOIN uchileedxlogin_edxloginuser as uch ON cb.user_id = uch.user_id
+            where cb.course_key = {{ course_id }}
+            group by cb.user_id;
+        """
+        course_key = CourseKey.from_string(course_id)
+        context_key = LearningContextKey.from_string(str(course_key))
+        try:
+            enrolled_students = User.objects.filter(
+                    blockcompletion__context_key=context_key,
+                    courseenrollment__is_active=1
+                ).annotate(
+                    last_completed=Max('blockcompletion__modified')
+                    ).order_by('username').values('username', 'email', 'edxloginuser__run', 'last_login', 'last_completed')
+
+            context = [[x['username'], x['edxloginuser__run'], x['email'], x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S"), x['last_login'].strftime("%d/%m/%Y, %H:%M:%S")] for x in enrolled_students]
+        except FieldError:
+            enrolled_students = User.objects.filter(
+                    blockcompletion__context_key=context_key,
+                    courseenrollment__is_active=1
+                ).annotate(
+                    last_completed=Max('blockcompletion__modified')
+                    ).order_by('username').values('username', 'email', 'last_login', 'last_completed')
+            context = [[x['username'], x['email'], x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S"), x['last_login'].strftime("%d/%m/%Y, %H:%M:%S")] for x in enrolled_students]
+        if len(context) == 0:
+            context = [[True]]
+        return {'data': context, 'is_bigcourse': True}
 
     def get_ticks(
             self,
