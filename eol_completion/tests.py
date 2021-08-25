@@ -174,9 +174,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data normal process with data_researcher_user
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.client_data_researcher.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -192,9 +192,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data normal process
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -216,9 +216,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         except ImportError:
             self.skipTest("import error uchileedxlogin")
         EdxLoginUser.objects.create(user=self.student, run='000000001K')
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -234,9 +234,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data wrong course
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': 'course-v1:mss+MSS001+2019_2'})
+                'course_id': 'course-v1:mss+MSS001+2019_2'}))
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -262,9 +262,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data when user is not staff
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -282,9 +282,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 completion=1.0,
             )
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -309,9 +309,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'downloadable')
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -330,9 +330,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'unavailable')
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -347,10 +347,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_no_content(self):
         """
             Test get data without content
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_no_content.id})
+                'course_id': self.course_no_content.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -366,10 +366,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_no_users(self):
         """
             Test get data without users
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_no_user.id})
+                'course_id': self.course_no_user.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -382,10 +382,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_course_empty(self):
         """
             Test get data with empty course
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_empty.id})
+                'course_id': self.course_empty.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
