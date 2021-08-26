@@ -24,7 +24,7 @@ function CompletionData(){
 function CompletionDataError(){
     var error = $('.eol-completion-error')[0]
     $('.loading')[0].style.display="none";
-    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL"
+    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL."
 }
 function CompletionTableBigCourse(data){
     var dataTable = []
@@ -66,7 +66,7 @@ function CompletionTableBigCourse(data){
         });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    //$('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos"
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
 }
 function CompletionTable(data){
     var main_header = $('.mainhead');
@@ -144,7 +144,7 @@ function CompletionTable(data){
         });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos"
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object

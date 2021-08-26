@@ -48,6 +48,9 @@ logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
 INHERITED_FILTER_LIST = ['children', 'xml_attributes']
 LIMIT_STUDENTS = 10000
+TIME_CACHE  = 300
+if hasattr(settings, 'EOL_COMPLETION_TIME_CACHE'):
+    TIME_CACHE = settings.EOL_COMPLETION_TIME_CACHE 
 
 @task(base=BaseInstructorTask, queue='edx.lms.core.low')
 def process_tick(entry_id, xmodule_instance_args):
@@ -64,65 +67,69 @@ def task_get_tick(
         task_input,
         action_name):
     course_key = course_id
-    display_name_course = task_input["display_name"]
-    # try to get rut from edxloginuser model if this dont exists only get id, username and email
-    try:
-        enrolled_students = User.objects.filter(
-            courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1
-        ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
-    except FieldError:
-        enrolled_students = User.objects.filter(
-            courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1
-        ).order_by('username').values('id', 'username', 'email')
     start_time = time()
     start_date = datetime.now(UTC)
     task_progress = TaskProgress(
         action_name,
-        enrolled_students.count(),
+        1,
         start_time)
-
-    store = modulestore()
-    data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
-    if data_content is None:
-        info = Content().dump_module(store.get_course(course_key))
-        id_course = str(BlockUsageLocator(course_key, "course", "course"))
-        if 'i4x://' in id_course:
-            id_course = str(
-                BlockUsageLocator(
-                    course_key,
-                    "course",
-                    display_name_course))
-        content, max_unit = Content().get_content(info, id_course)
+    is_bigcourse = task_input["is_bigcourse"] == '1'
+    if is_bigcourse:
+        data = EolCompletionData().get_context_big_course(course_key)
     else:
-        # Dictionary with all course blocks
-        info = data_content[2]
-        content = data_content[0]
-        max_unit = data_content[1]
-    data = EolCompletionData().get_ticks(
-        content, info, enrolled_students, course_key, max_unit)
+        display_name_course = task_input["display_name"]
+        # try to get rut from edxloginuser model if this dont exists only get id, username and email
+        try:
+            enrolled_students = User.objects.filter(
+                courseenrollment__course_id=course_key,
+                courseenrollment__is_active=1
+            ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
+        except FieldError:
+            enrolled_students = User.objects.filter(
+                courseenrollment__course_id=course_key,
+                courseenrollment__is_active=1
+            ).order_by('username').values('id', 'username', 'email')
+        store = modulestore()
+        data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
+        if data_content is None:
+            info = Content().dump_module(store.get_course(course_key))
+            id_course = str(BlockUsageLocator(course_key, "course", "course"))
+            if 'i4x://' in id_course:
+                id_course = str(
+                    BlockUsageLocator(
+                        course_key,
+                        "course",
+                        display_name_course))
+            content, max_unit = Content().get_content(info, id_course)
+        else:
+            # Dictionary with all course blocks
+            info = data_content[2]
+            content = data_content[0]
+            max_unit = data_content[1]
+        data = EolCompletionData().get_ticks(
+            content, info, enrolled_students, course_key, max_unit)
+
     times = datetime.now()
     times = times.strftime("%d/%m/%Y, %H:%M:%S")
     data['time'] = times
-    data['is_bigcourse'] = False
-    data['time_queue'] = str(settings.EOL_COMPLETION_TIME_CACHE / 60)
+    data['is_bigcourse'] = is_bigcourse
+    data['time_queue'] = str(TIME_CACHE / 60)
     current_step = {'step': 'Uploading Data Eol Completion'}
     cache.set(
         "eol_completion-" +
         task_input["course_id"] +
         "-data",
         data,
-        settings.EOL_COMPLETION_TIME_CACHE)
+        TIME_CACHE)
 
     return task_progress.update_task_state(extra_meta=current_step)
 
 
-def task_process_tick(request, course_id, display_name_course):
+def task_process_tick(request, course_id, display_name_course, is_bigcourse):
     course_key = CourseKey.from_string(course_id)
     task_type = 'EOL_Completion'
     task_class = process_tick
-    task_input = {'course_id': course_id, 'display_name': display_name_course}
+    task_input = {'course_id': course_id, 'display_name': display_name_course, 'is_bigcourse': is_bigcourse}
     task_key = course_id
 
     return submit_task(
@@ -293,7 +300,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             data.extend([content])
             data.extend([maxn])
             data.extend([info])
-            cache.set("eol_completion-" + course_id + "-content", data, settings.EOL_COMPLETION_TIME_CACHE)
+            cache.set("eol_completion-" + course_id + "-content", data, TIME_CACHE)
 
         context = {
             "course": course,
@@ -312,7 +319,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
 
     def get_context_big_course(self, course, course_key):
         """
-            .
+            Return data url for big course
         """
         context = {
             "course": course,
@@ -345,14 +352,11 @@ class EolCompletionData(View, Content):
         if not (staff_access or data_researcher_access):
             raise Http404()
 
-        if is_bigcourse == '1':
-            context = self.get_context_big_course(request, course_id, display_name_course)
-        else:
-            context = self.get_context(request, course_id, display_name_course)
+        context = self.get_context(request, course_id, display_name_course, is_bigcourse)
 
         return JsonResponse(context)
 
-    def get_context(self, request, course_id, display_name_course):
+    def get_context(self, request, course_id, display_name_course, is_bigcourse):
         """
             Return eol completion data
         """
@@ -360,43 +364,49 @@ class EolCompletionData(View, Content):
         if data is None:
             data = {"data": [[False]]}
             try:
-                task_process_tick(request, course_id, display_name_course)
+                task_process_tick(request, course_id, display_name_course, is_bigcourse)
             except AlreadyRunningError:
                 pass
         context = data
 
         return context
 
-    def get_context_big_course(self, request, course_id, display_name_course):
+    def get_context_big_course(self, course_key):
         """
-            select uch.run, max(modified) as last_completed, u.last_login from completion_blockcompletion as cb
-            LEFT JOIN auth_user as u ON u.id = cb.user_id
-            LEFT JOIN uchileedxlogin_edxloginuser as uch ON cb.user_id = uch.user_id
-            where cb.course_key = {{ course_id }}
-            group by cb.user_id;
+            Return eol completion data
         """
-        course_key = CourseKey.from_string(course_id)
         context_key = LearningContextKey.from_string(str(course_key))
         try:
             enrolled_students = User.objects.filter(
-                    blockcompletion__context_key=context_key,
+                    courseenrollment__course_id=course_key,
                     courseenrollment__is_active=1
                 ).annotate(
                     last_completed=Max('blockcompletion__modified')
                     ).order_by('username').values('username', 'email', 'edxloginuser__run', 'last_login', 'last_completed')
 
-            context = [[x['username'], x['edxloginuser__run'], x['email'], x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S"), x['last_login'].strftime("%d/%m/%Y, %H:%M:%S")] for x in enrolled_students]
+            context = [
+                [x['username'], 
+                x['edxloginuser__run'] if x['edxloginuser__run'] else '', 
+                x['email'], 
+                x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_completed'] else '', 
+                x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
+            ]
         except FieldError:
             enrolled_students = User.objects.filter(
-                    blockcompletion__context_key=context_key,
+                    courseenrollment__course_id=course_key,
                     courseenrollment__is_active=1
                 ).annotate(
                     last_completed=Max('blockcompletion__modified')
                     ).order_by('username').values('username', 'email', 'last_login', 'last_completed')
-            context = [[x['username'], x['email'], x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S"), x['last_login'].strftime("%d/%m/%Y, %H:%M:%S")] for x in enrolled_students]
+            context = [
+                [x['username'], 
+                x['email'], 
+                x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_completed'] else '', 
+                x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
+            ]
         if len(context) == 0:
             context = [[True]]
-        return {'data': context, 'is_bigcourse': True}
+        return {'data': context}
 
     def get_ticks(
             self,

@@ -1,0 +1,3 @@
+def plugin_settings(settings):
+    settings.EOL_COMPLETION_TIME_CACHE = settings.ENV_TOKENS.get('EOL_COMPLETION_TIME_CACHE', 300)
+    settings.EOL_COMPLETION_LIMIT_STUDENT = settings.ENV_TOKENS.get('EOL_COMPLETION_LIMIT_STUDENT', 10000)
