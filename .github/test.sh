@@ -1,5 +1,5 @@
 #!/bin/dash
-pip install -e git+https://github.com/eol-uchile/uchileedxlogin@5067c4172210d1e280565f54bbfa012abdd433ac#egg=uchileedxlogin
+pip install -e git+https://github.com/eol-uchile/uchileedxlogin@8cb702fe18c26b29c0667c660c24ee75a03c9ec9#egg=uchileedxlogin
 pip install -e /openedx/requirements/eol_completion
 
 cd /openedx/requirements/eol_completion/eol_completion

@@ -8,7 +8,12 @@ function CompletionData(){
                 setTimeout(CompletionData, 5000);
             }
             else{
-                return CompletionTable(data);
+                if(data['is_bigcourse'] == false){
+                    return CompletionTable(data);
+                }
+                else{
+                    return CompletionTableBigCourse(data);
+                }
             }
         },
         error: function() {
@@ -19,7 +24,49 @@ function CompletionData(){
 function CompletionDataError(){
     var error = $('.eol-completion-error')[0]
     $('.loading')[0].style.display="none";
-    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL"
+    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL."
+}
+function CompletionTableBigCourse(data){
+    var dataTable = []
+    if (data["data"][0][0] != true){
+        dataTable = data["data"]
+    }
+    $('#mytable').DataTable({
+            scrollX: true,
+            rowReorder: true,
+            data: dataTable,
+            "processing": true,
+            "sDom": "B<'row'>lfrtip",
+            buttons: [ {
+                extend: 'excelHtml5',
+                title : 'Seguimiento'
+            }],
+            "pageLength": 100,
+            "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
+            language: {
+                "decimal": "",
+                "emptyTable": "No hay información",
+                "info": "Mostrando _START_ a _END_ de _TOTAL_ Estudiantes",
+                "infoEmpty": "Mostrando 0 de 0 a 0 Estudiantes",
+                "infoFiltered": "(Filtrado de _MAX_ total Estudiantes)",
+                "infoPostFix": "",
+                "thousands": ",",
+                "lengthMenu": "Mostrar _MENU_ Estudiantes",
+                "loadingRecords": "Cargando...",
+                "processing": "Procesando...",
+                "search": "Buscar:",
+                "zeroRecords": "Sin resultados encontrados",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Ultimo",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            }
+        });
+    $('.loading')[0].style.display="none";
+    $('.teams-content')[0].style.visibility = "visible";
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
 }
 function CompletionTable(data){
     var main_header = $('.mainhead');
@@ -97,7 +144,7 @@ function CompletionTable(data){
         });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos"
+    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object

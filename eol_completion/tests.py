@@ -7,20 +7,20 @@ from django.test import TestCase, Client
 from django.test.client import RequestFactory
 from django.urls import reverse
 from django.contrib.auth.models import User
-from util.testing import UrlResetMixin
+from common.djangoapps.util.testing import UrlResetMixin
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-from student.roles import CourseStaffRole
-from student.tests.factories import UserFactory, CourseEnrollmentFactory
+from common.djangoapps.student.roles import CourseStaffRole
+from common.djangoapps.student.tests.factories import UserFactory, CourseEnrollmentFactory, CourseAccessRoleFactory
 from capa.tests.response_xml_factory import StringResponseXMLFactory
 from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
 from completion import models
 from opaque_keys.edx.keys import CourseKey, LearningContextKey
-from courseware.courses import get_course_with_access
+from lms.djangoapps.courseware.courses import get_course_with_access
 from lms.djangoapps.certificates.models import GeneratedCertificate
-from common.djangoapps.student.tests.factories import CourseAccessRoleFactory
+from django.test.utils import override_settings
 from six import text_type
 from six.moves import range
 import json
@@ -96,7 +96,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             org='mem', course='111', display_name='eol_completion_course4')
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
-        with patch('student.models.cc.User.save'):
+        with patch('common.djangoapps.student.models.cc.User.save'):
             # Create the student
             self.student = UserFactory(
                 username='student',
@@ -162,7 +162,16 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         url = reverse('completion_view', kwargs={'course_id': self.course.id})
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
-    
+
+    @override_settings(EOL_COMPLETION_LIMIT_STUDENT=2)
+    def test_render_page_big_course(self):
+        """
+            Test reder page normal process when is big course
+        """
+        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        self.response = self.staff_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+  
     def test_render_page_data_researcher_user(self):
         """
             Test reder page normal process with data_researcher_user
@@ -175,9 +184,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data normal process with data_researcher_user
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.client_data_researcher.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -189,13 +198,42 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
+    def test_render_data_big_course(self):
+        """
+            Test get data normal process when is big course
+        """
+        context_key = LearningContextKey.from_string(str(self.course.id))
+        for item in self.items:
+            usage_key = item.scope_ids.usage_id
+            completion = models.BlockCompletion.objects.create(
+                user=self.student,
+                context_key=context_key,
+                block_key=usage_key,
+                completion=1.0,
+            )
+        url = '{}?is_bigcourse=1'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id}))
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.staff_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(data['data'][-1][0], self.student.username)
+        self.assertEqual(data['data'][-1][1], '')
+        self.assertEqual(data['data'][-1][2], self.student.email)
+        self.assertEqual(data['data'][-1][3], completion.modified.strftime("%d/%m/%Y, %H:%M:%S"))
+
     def test_render_data(self):
         """
             Test get data normal process
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -217,9 +255,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         except ImportError:
             self.skipTest("import error uchileedxlogin")
         EdxLoginUser.objects.create(user=self.student, run='000000001K')
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -231,13 +269,48 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
+    def test_render_data_with_rut_big_course(self):
+        """
+            Test get data normal process with edxloginuser when is big course
+        """
+        try:
+            from unittest.case import SkipTest
+            from uchileedxlogin.models import EdxLoginUser
+        except ImportError:
+            self.skipTest("import error uchileedxlogin")
+        edxlogin = EdxLoginUser.objects.create(user=self.student, run='000000001K')
+        context_key = LearningContextKey.from_string(str(self.course.id))
+        for item in self.items:
+            usage_key = item.scope_ids.usage_id
+            completion = models.BlockCompletion.objects.create(
+                user=self.student,
+                context_key=context_key,
+                block_key=usage_key,
+                completion=1.0,
+            )
+        url = '{}?is_bigcourse=1'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id}))
+        self.response = self.staff_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.staff_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(data['data'][-1][0], self.student.username)
+        self.assertEqual(data['data'][-1][1], edxlogin.run)
+        self.assertEqual(data['data'][-1][2], self.student.email)
+        self.assertEqual(data['data'][-1][3], completion.modified.strftime("%d/%m/%Y, %H:%M:%S"))
+
     def test_render_data_wrong_course(self):
         """
             Test get data wrong course
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': 'course-v1:mss+MSS001+2019_2'})
+                'course_id': 'course-v1:mss+MSS001+2019_2'}))
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -263,9 +336,25 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data when user is not staff
         """
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
+        self.response = self.client.get(url)
+        self.assertEqual(self.response.status_code, 404)
+
+    def test_render_data_is_bigcourse_wrong_params(self):
+        """
+            Test get data when is_bigcourse is not defined or is wrong
+        """
+        url = '{}'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id}))
+        self.response = self.client.get(url)
+        self.assertEqual(self.response.status_code, 404)
+
+        url = '{}?is_bigcourse=asd'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course.id}))
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -283,9 +372,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 completion=1.0,
             )
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -310,9 +399,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'downloadable')
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -331,9 +420,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'unavailable')
 
-        url = reverse(
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course.id})
+                'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -348,10 +437,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_no_content(self):
         """
             Test get data without content
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_no_content.id})
+                'course_id': self.course_no_content.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -363,14 +452,14 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(data['completion'], ["0", "0", "0"])
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '0/0', '0/0', 'No'])
-    
+
     def test_render_data_no_users(self):
         """
             Test get data without users
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_no_user.id})
+                'course_id': self.course_no_user.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -383,10 +472,10 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
     def test_render_data_course_empty(self):
         """
             Test get data with empty course
-        """        
-        url = reverse(
+        """
+        url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
-                'course_id': self.course_empty.id})
+                'course_id': self.course_empty.id}))
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -396,3 +485,55 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'], [[True]])
         self.assertEqual(data['completion'], [])
+
+    def test_render_data_no_content_bigcourse(self):
+        """
+            Test get data without content
+        """
+        url = '{}?is_bigcourse=1'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_no_content.id}))
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 12)
+        self.assertEqual(data['data'][-1][0], self.student.username)
+        self.assertEqual(data['data'][-1][1], '')
+        self.assertEqual(data['data'][-1][2], self.student.email)
+        self.assertEqual(data['data'][-1][3], '')
+
+    def test_render_data_no_users_bigcourse(self):
+        """
+            Test get data without users
+        """
+        url = '{}?is_bigcourse=1'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_no_user.id}))
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'], [[True]])
+
+    def test_render_data_course_empty_bigcourse(self):
+        """
+            Test get data with empty course
+        """
+        url = '{}?is_bigcourse=1'.format(reverse(
+            'completion_data_view', kwargs={
+                'course_id': self.course_empty.id}))
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'], [[True]])
