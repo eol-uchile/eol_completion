@@ -1,0 +1,117 @@
+# English translations for PROJECT.
+# Copyright (C) 2022 EOL
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: eol-ayuda@uchile.cl\n"
+"POT-Creation-Date: 2022-01-21 14:36+0000\n"
+"PO-Revision-Date: 2022-01-21 13:16+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.6.0\n"
+
+#: eol_completion/plugins.py:12
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:5
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:5
+msgid "Seguimiento"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:148
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:148
+msgid "Seguimiento de estudiantes"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:151
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:151
+msgid "Cargando datos de la tabla"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:154
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:154
+msgid "Ocurrio un error inesperado, actualice la página e intente nuevamente."
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:155
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:155
+msgid "Si el error persiste contactese con el equipo de EOL."
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:162
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:170
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:173
+msgid "Estudiante"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:163
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:171
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:174
+msgid "Rut"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:164
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:172
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:172
+msgid "Correo"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:165
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:173
+msgid "Ultima Completitud"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:166
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:174
+msgid "Ultimo Login"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:181
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:260
+msgid "Ultima Actualización"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:181
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:260
+msgid "Próxima actualización disponible dentro de"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_bigcourse.html:181
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:260
+msgid "minutos"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:160
+msgid "Mostrar/Ocultar Sección"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:183
+msgid "Sin Contenido"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:184
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:187
+msgid "Total"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:185
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:188
+msgid "Certificado Generado"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:210
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:220
+msgid "Unidades"
+msgstr ""
+
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:210
+#: eol_completion/templates/eol_completion/eol_completion_fragment.html:220
+msgid "Completadas"
+msgstr ""
+
