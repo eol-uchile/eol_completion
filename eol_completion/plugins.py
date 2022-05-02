@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.utils.translation import ugettext_noop
+from django.utils.translation import ugettext as _
 
 from lms.djangoapps.courseware.tabs import EnrolledTab
 from xmodule.tabs import TabFragmentViewMixin
@@ -9,7 +9,7 @@ from lms.djangoapps.instructor import permissions
 
 class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
     type = 'eol_completion'
-    title = ugettext_noop('Seguimiento')
+    title = _('Seguimiento')
     priority = None
     view_name = 'completion_view'
     fragment_view_name = 'eol_completion.views.EolCompletionFragmentView'

@@ -1,3 +1,49 @@
+const language_dataTable = {
+    'en':{
+        "decimal":        "",
+        "emptyTable":     "No data available in table",
+        "info":           "Showing _START_ to _END_ of _TOTAL_ entries",
+        "infoEmpty":      "Showing 0 to 0 of 0 entries",
+        "infoFiltered":   "(filtered from _MAX_ total entries)",
+        "infoPostFix":    "",
+        "thousands":      ",",
+        "lengthMenu":     "Show _MENU_ entries",
+        "loadingRecords": "Loading...",
+        "processing":     "Processing...",
+        "search":         "Search:",
+        "zeroRecords":    "No matching records found",
+        "paginate": {
+            "first":      "First",
+            "last":       "Last",
+            "next":       "Next",
+            "previous":   "Previous"
+        },
+        "aria": {
+            "sortAscending":  ": activate to sort column ascending",
+            "sortDescending": ": activate to sort column descending"
+        }
+    },
+    'es':{
+        "decimal": "",
+        "emptyTable": "No hay información",
+        "info": "Mostrando _START_ a _END_ de _TOTAL_ Estudiantes",
+        "infoEmpty": "Mostrando 0 de 0 a 0 Estudiantes",
+        "infoFiltered": "(Filtrado de _MAX_ total Estudiantes)",
+        "infoPostFix": "",
+        "thousands": ",",
+        "lengthMenu": "Mostrar _MENU_ Estudiantes",
+        "loadingRecords": "Cargando...",
+        "processing": "Procesando...",
+        "search": "Buscar:",
+        "zeroRecords": "Sin resultados encontrados",
+        "paginate": {
+            "first": "Primero",
+            "last": "Ultimo",
+            "next": "Siguiente",
+            "previous": "Anterior"
+        }
+    }
+};
 function CompletionData(){
     $.ajax({
         dataType: 'json',
@@ -22,15 +68,21 @@ function CompletionData(){
     })
 }
 function CompletionDataError(){
-    var error = $('.eol-completion-error')[0]
+    $('.eol-completion-error')[0].style.display="block";
     $('.loading')[0].style.display="none";
-    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL."
 }
 function CompletionTableBigCourse(data){
     var dataTable = []
     if (data["data"][0][0] != true){
         dataTable = data["data"]
     }
+    let lang = 'es';
+    let all = 'Todos';
+    if ($('html').attr('lang') == 'en'){
+        lang = 'en';
+        all = 'All';
+    }
+
     $('#mytable').DataTable({
             scrollX: true,
             rowReorder: true,
@@ -42,31 +94,14 @@ function CompletionTableBigCourse(data){
                 title : 'Seguimiento'
             }],
             "pageLength": 100,
-            "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
-            language: {
-                "decimal": "",
-                "emptyTable": "No hay información",
-                "info": "Mostrando _START_ a _END_ de _TOTAL_ Estudiantes",
-                "infoEmpty": "Mostrando 0 de 0 a 0 Estudiantes",
-                "infoFiltered": "(Filtrado de _MAX_ total Estudiantes)",
-                "infoPostFix": "",
-                "thousands": ",",
-                "lengthMenu": "Mostrar _MENU_ Estudiantes",
-                "loadingRecords": "Cargando...",
-                "processing": "Procesando...",
-                "search": "Buscar:",
-                "zeroRecords": "Sin resultados encontrados",
-                "paginate": {
-                    "first": "Primero",
-                    "last": "Ultimo",
-                    "next": "Siguiente",
-                    "previous": "Anterior"
-                }
-            }
+            "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, all]],
+            language: language_dataTable[lang]
         });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
+    $('#eol-completion-time-date')[0].innerHTML = data["time"];
+    $('#eol-completion-time-queue')[0].innerHTML = data["time_queue"];
+    $('#eol-completion-time')[0].style.display="block";
 }
 function CompletionTable(data){
     var main_header = $('.mainhead');
@@ -96,10 +131,16 @@ function CompletionTable(data){
         var footer = $('#eol-completion-tfoot')[0];
         footer.innerHTML = "<tr><th hidden></th><th>Total</th><th></th><th></th><th></th><th></th></tr>";
     }
-    var dataTable = []
-        if (data["data"][0][0] != true){
-            dataTable = data["data"]
-        }
+    var dataTable = [];
+    if (data["data"][0][0] != true){
+        dataTable = data["data"];
+    }
+    let lang = 'es';
+    let all = 'Todos';
+    if ($('html').attr('lang') == 'en'){
+        lang = 'en';
+        all = 'All';
+    }
     var myTable = $('#mytable').DataTable({
             scrollX: true,
             rowReorder: true,
@@ -114,37 +155,20 @@ function CompletionTable(data){
                 leftColumns: 2
             },
             "pageLength": 100,
-            "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
+            "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, all]],
             columnDefs: [
                 { targets: [0], "visible": false, "searchable": false },
                 { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
                 { orderable: true, className: 'reorder', targets: [1] },
                 { orderable: false, targets: '_all' }
             ],
-            language: {
-                "decimal": "",
-                "emptyTable": "No hay información",
-                "info": "Mostrando _START_ a _END_ de _TOTAL_ Estudiantes",
-                "infoEmpty": "Mostrando 0 de 0 a 0 Estudiantes",
-                "infoFiltered": "(Filtrado de _MAX_ total Estudiantes)",
-                "infoPostFix": "",
-                "thousands": ",",
-                "lengthMenu": "Mostrar _MENU_ Estudiantes",
-                "loadingRecords": "Cargando...",
-                "processing": "Procesando...",
-                "search": "Buscar:",
-                "zeroRecords": "Sin resultados encontrados",
-                "paginate": {
-                    "first": "Primero",
-                    "last": "Ultimo",
-                    "next": "Siguiente",
-                    "previous": "Anterior"
-                }
-            }
+            language: language_dataTable[lang]
         });
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
-    $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
+    $('#eol-completion-time-date')[0].innerHTML = data["time"];
+    $('#eol-completion-time-queue')[0].innerHTML = data["time_queue"];
+    $('#eol-completion-time')[0].style.display="block";
     $('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object
