@@ -194,7 +194,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.client_data_researcher.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
@@ -221,7 +221,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['data'][-1][0], self.student.username)
         self.assertEqual(data['data'][-1][1], '')
         self.assertEqual(data['data'][-1][2], self.student.email)
@@ -241,7 +241,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
@@ -265,7 +265,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
@@ -298,7 +298,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['data'][-1][0], self.student.username)
         self.assertEqual(data['data'][-1][1], edxlogin.run)
         self.assertEqual(data['data'][-1][2], self.student.email)
@@ -382,7 +382,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['data'][-1],
                          ['student@edx.org',
                           'student',
@@ -409,7 +409,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'Si'])
 
@@ -430,7 +430,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 14)
+        self.assertEqual(len(data['data']), 12)
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
