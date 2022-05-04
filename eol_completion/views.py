@@ -379,20 +379,22 @@ class EolCompletionData(View, Content):
             Return eol completion data
         """
         context_key = LearningContextKey.from_string(str(course_key))
+        aux_block_completions = BlockCompletion.objects.filter(context_key=context_key).values('user').annotate(last_completed=Max('modified'))
+        last_block_completions= {}
+        for x in aux_block_completions:
+            last_block_completions[x['user']] = x['last_completed']
         try:
             enrolled_students = User.objects.filter(
                     courseenrollment__course_id=course_key,
                     courseenrollment__is_active=1,
                     courseenrollment__mode='honor'
-                ).annotate(
-                    last_completed=Max('blockcompletion__modified')
-                    ).order_by('username').values('username', 'email', 'edxloginuser__run', 'last_login', 'last_completed')
+                ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run', 'last_login')
 
             context = [
                 [x['username'], 
                 x['edxloginuser__run'] if x['edxloginuser__run'] else '', 
                 x['email'], 
-                x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_completed'] else '', 
+                last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '', 
                 x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
             ]
         except FieldError:
@@ -406,7 +408,7 @@ class EolCompletionData(View, Content):
             context = [
                 [x['username'], 
                 x['email'], 
-                x['last_completed'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_completed'] else '', 
+                last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '',
                 x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
             ]
         if len(context) == 0:
