@@ -404,7 +404,7 @@ class EolCompletionData(View, Content):
                     courseenrollment__mode='honor'
                 ).annotate(
                     last_completed=Max('blockcompletion__modified')
-                    ).order_by('username').values('username', 'email', 'last_login', 'last_completed')
+                    ).order_by('username').values('id', 'username', 'email', 'last_login', 'last_completed')
             context = [
                 [x['username'], 
                 x['email'], 
