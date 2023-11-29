@@ -82,14 +82,12 @@ def task_get_tick(
         try:
             enrolled_students = User.objects.filter(
                 courseenrollment__course_id=course_key,
-                courseenrollment__is_active=1,
-                courseenrollment__mode='honor'
+                courseenrollment__is_active=1
             ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
         except FieldError:
             enrolled_students = User.objects.filter(
                 courseenrollment__course_id=course_key,
-                courseenrollment__is_active=1,
-                courseenrollment__mode='honor'
+                courseenrollment__is_active=1
             ).order_by('username').values('id', 'username', 'email')
         store = modulestore()
         data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
@@ -265,8 +263,7 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
             limit_student = settings.EOL_COMPLETION_LIMIT_STUDENT 
         is_big = limit_student < User.objects.filter(
             courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1,
-            courseenrollment__mode='honor'
+            courseenrollment__is_active=1
         ).count()
         if not is_big:
             context = self.get_context(request, course_id, course, course_key)
@@ -386,8 +383,7 @@ class EolCompletionData(View, Content):
         try:
             enrolled_students = User.objects.filter(
                     courseenrollment__course_id=course_key,
-                    courseenrollment__is_active=1,
-                    courseenrollment__mode='honor'
+                    courseenrollment__is_active=1
                 ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run', 'last_login')
 
             context = [
@@ -400,12 +396,12 @@ class EolCompletionData(View, Content):
         except FieldError:
             enrolled_students = User.objects.filter(
                     courseenrollment__course_id=course_key,
-                    courseenrollment__is_active=1,
-                    courseenrollment__mode='honor'
+                    courseenrollment__is_active=1
                 ).order_by('username').values('id', 'username', 'email', 'last_login')
             context = [
                 [x['username'], 
-                x['email'], 
+                '',
+                x['email'],
                 last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '',
                 x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
             ]
