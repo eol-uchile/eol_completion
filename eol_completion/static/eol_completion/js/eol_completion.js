@@ -107,11 +107,11 @@ function CompletionTable(data){
             "processing": true,
             "sDom": "B<'row'>lfrtip",
             buttons: [ {
-            extend: 'excelHtml5',
-            title : 'Seguimiento'
+                extend: 'excelHtml5',
+                title : 'Seguimiento'
             }],        
             fixedColumns: {
-                leftColumns: 2
+                leftColumns: 3
             },
             "pageLength": 100,
             "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
