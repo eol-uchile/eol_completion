@@ -42,6 +42,7 @@ from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from numpy import sum
 from django.core.exceptions import FieldError
 import logging
+from common.djangoapps.edxmako.shortcuts import render_to_response
 # Create your views here.
 
 logger = logging.getLogger(__name__)
@@ -249,8 +250,8 @@ class Content(object):
         return destination
 
 
-class EolCompletionFragmentView(EdxFragmentView, Content):
-    def render_to_fragment(self, request, course_id, **kwargs):
+class EolCompletionFragmentView(View, Content):
+    def get(self, request, course_id, **kwargs):
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, "load", course_key)
 
@@ -267,14 +268,10 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         ).count()
         if not is_big:
             context = self.get_context(request, course_id, course, course_key)
-            html = render_to_string(
-            'eol_completion/eol_completion_fragment.html', context)
+            return render_to_response('eol_completion/eol_completion_fragment.html', context)
         else:
             context = self.get_context_big_course(course, course_key)
-            html = render_to_string(
-                'eol_completion/eol_completion_bigcourse.html', context)
-        fragment = Fragment(html)
-        return fragment
+            return render_to_response('eol_completion/eol_completion_bigcourse.html', context)
 
     def get_context(self, request, course_id, course, course_key):
         """

@@ -24,7 +24,7 @@ function CompletionData(){
 function CompletionDataError(){
     var error = $('.eol-completion-error')[0]
     $('.loading')[0].style.display="none";
-    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el equipo ded EOL."
+    error.innerHTML = "Ocurrio un error inesperado, actualice la página e intente nuevamente.</br>Si el error persiste contactese con el Mesa de Ayuda."
 }
 function CompletionTableBigCourse(data){
     var dataTable = []
@@ -72,7 +72,7 @@ function CompletionTable(data){
     var main_header = $('.mainhead');
     var array_index_column_pto = []
     if(main_header.length > 0){
-        var columns_pto = $('.pto');
+        /*var columns_pto = $('.pto');
         for (j = 0; j < columns_pto.length; j++) {
             array_index_column_pto.push(parseInt(columns_pto[j].id))
         }
@@ -82,10 +82,10 @@ function CompletionTable(data){
             var aux_i = main_header[j].dataset.col_from
             var aux_j = main_header[j].dataset.col_to
             $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' <li><a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a></li>'
-        }
+        }*/
         if (data["completion"].length > 0){
             var footer = $('#eol-completion-tfoot')[0];
-            footer_aux = "<tr><th hidden></th><th>Total</th><th></th>";
+            footer_aux = "<tr><th></th><th>Total</th><th></th>";
             for (j = 0; j <data["completion"].length; j++) {  
                 footer_aux = footer_aux + "<th>" + data["completion"][j] + "</th>";
             }
@@ -94,7 +94,7 @@ function CompletionTable(data){
     }
     else{
         var footer = $('#eol-completion-tfoot')[0];
-        footer.innerHTML = "<tr><th hidden></th><th>Total</th><th></th><th></th><th></th><th></th></tr>";
+        footer.innerHTML = "<tr><th></th><th>Total</th><th></th><th></th><th></th><th></th></tr>";
     }
     var dataTable = []
         if (data["data"][0][0] != true){
@@ -116,9 +116,9 @@ function CompletionTable(data){
             "pageLength": 100,
             "lengthMenu": [[50, 100, 200, -1], [50, 100, 200, "Todos"]],
             columnDefs: [
-                { targets: [0], "visible": false, "searchable": false },
-                { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
-                { orderable: true, className: 'reorder', targets: [1] },
+                //{ targets: [0], "visible": false, "searchable": false },
+                //{ "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
+                { orderable: true, className: 'reorder', targets: [0, 1] },
                 { orderable: false, targets: '_all' }
             ],
             language: {
@@ -145,7 +145,7 @@ function CompletionTable(data){
     $('.loading')[0].style.display="none";
     $('.teams-content')[0].style.visibility = "visible";
     $('#eol-completion-time')[0].innerHTML = "</br>Ultima Actualización: " + data["time"] + " - Próxima actualización disponible dentro de " + data["time_queue"] + " minutos."
-    $('a.toggle-vis').on('click', function (e) {
+    /*$('a.toggle-vis').on('click', function (e) {
         e.preventDefault();
         // Get the column API object
         var minmax = $(this).attr('value');
@@ -165,7 +165,7 @@ function CompletionTable(data){
             $(this).removeClass('novisto')
             $(this).addClass('visto')
         }
-    }); 
+    }); */
 }
 
 $(document).ready(function () {
