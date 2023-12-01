@@ -30,7 +30,8 @@
         padding-right: 40px !important;
     }
     
-    .eolcompletion-wrapper th:first-child {
+    .eolcompletion-wrapper th:first-child,
+    .eolcompletion-wrapper td:first-child {
         border-left: 1px solid #dddddd;
     }
     body.view-in-course .container {
@@ -48,6 +49,13 @@
     }
     #eol-completion-time{
         text-align: center;
+    }
+    .dataTables_sizing{
+        font-weight: 400 !important;
+    }
+    .dataTables_scrollHeadInner,
+    .dataTables_scrollFootInner{
+        margin: auto;
     }
 </style>
 </%block>
@@ -140,11 +148,11 @@ from django.utils.translation import ugettext as _
                                     <% first = True %>
                                     <% first2 = True %>
                                     %for section in content.items():
-                                        %if not first and section[1]['type'] == 'section':
+                                        %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                             <% i += 1 %> 
                                             <% j = 0 %>
                                         %endif
-                                        %if not first2 and section[1]['type'] == 'subsection':
+                                        %if not first2 and section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:
                                             <% j += 1 %>
                                             <% k = 1 %>
                                         %endif
