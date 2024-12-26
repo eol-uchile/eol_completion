@@ -1,15 +1,19 @@
 name: Python application
 
-on: [push]
+on:
+  push:
+    paths-ignore:
+      - '.github/workflows/**'
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - 'master'
+    paths-ignore:
+      - '.github/workflows/**'
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Run Tests
-      run: |        
-        cd .github/
-        docker-compose run lms /openedx/requirements/eol_completion/.github/test.sh
+    uses: eol-uchile/eol_feedback/.github/workflows/pythonapp.yml@master
