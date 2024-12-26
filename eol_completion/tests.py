@@ -1,31 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from mock import patch, Mock
+from mock import patch
 
-
-from django.test import TestCase, Client
-from django.test.client import RequestFactory
+from django.test import Client
 from django.urls import reverse
-from django.contrib.auth.models import User
 from common.djangoapps.util.testing import UrlResetMixin
-from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from common.djangoapps.student.roles import CourseStaffRole
 from common.djangoapps.student.tests.factories import UserFactory, CourseEnrollmentFactory, CourseAccessRoleFactory
-from capa.tests.response_xml_factory import StringResponseXMLFactory
-from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
 from completion import models
-from opaque_keys.edx.keys import CourseKey, LearningContextKey
-from lms.djangoapps.courseware.courses import get_course_with_access
+from opaque_keys.edx.keys import LearningContextKey
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from django.test.utils import override_settings
-from six import text_type
 from six.moves import range
 import json
-from . import views
-import time
+
 USER_COUNT = 11
 
 
