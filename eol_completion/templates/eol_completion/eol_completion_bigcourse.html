@@ -2,7 +2,7 @@
 <%! from django.utils.translation import ugettext as _ %>
 <%namespace name='static' file='/static_content.html'/>
 <%block name="bodyclass">view-in-course</%block>
-<%block name="pagetitle">Seguimiento</%block>
+<%block name="pagetitle">${_("Seguimiento")}</%block>
 <%inherit file="/main.html" />
 <%block name="headextra">
 
@@ -145,35 +145,39 @@
 
 </style>
 <main id="main" aria-label="Content" tabindex="-1">
-    <h2 class="hd hd-2 mt-0">Seguimiento de estudiantes</h2>
+    <h2 class="hd hd-2 mt-0">${_("Seguimiento de estudiantes")}</h2>
     <input type="text" name="data_url" id="data_url" value="${data_url}" hidden>
     <div class="loading" style="text-align: center;">
-            Cargando datos de la tabla ...
+            ${_("Cargando datos de la tabla")} ...
     </div>
-    <div class="eol-completion-error" style="text-align: center;color: red;">
+    <div class="eol-completion-error" style="text-align: center;color: red;display: none;">
+        ${_("Ocurrio un error inesperado, actualice la página e intente nuevamente.")}</br>
+        ${_("Si el error persiste contactese con el equipo de EOL.")}
     </div>
     <section class="teams-content" style="visibility: hidden;">
         <div class="dataTables_wrapper">
             <table id="mytable" class="stripe row-border order-column cell-border" style="width:100%;table-layout:auto; text-align: center;">
                 <thead>
                     <!--Main Header-->
-                    <th>Estudiante</th>
-                    <th>Rut</th>
-                    <th>Correo</th>
-                    <th>Ultima Completitud</th>
-                    <th>Ultimo Login</th>
+                    <th>${_("Estudiante")}</th>
+                    <th>${_("Rut")}</th>
+                    <th>${_("Correo")}</th>
+                    <th>${_("Ultima Completitud")}</th>
+                    <th>${_("Ultimo Login")}</th>
                 </thead>
                 <tbody></tbody>
                 <tfoot id="eol-completion-tfoot">
-                    <th>Estudiante</th>
-                    <th>Rut</th>
-                    <th>Correo</th>
-                    <th>Ultima Completitud</th>
-                    <th>Ultimo Login</th>
+                    <th>${_("Estudiante")}</th>
+                    <th>${_("Rut")}</th>
+                    <th>${_("Correo")}</th>
+                    <th>${_("Ultima Completitud")}</th>
+                    <th>${_("Ultimo Login")}</th>
                 </tfoot>
             </table>
         </div>
     </section>
-    <div id="eol-completion-time" class="grade-book-footer">
+    <div id="eol-completion-time" class="grade-book-footer" style="display: none;">
+        </br>
+        ${_("Ultima Actualización")}: <span id="eol-completion-time-date"></span> - ${_("Próxima actualización disponible dentro de")} <span id="eol-completion-time-queue"></span> ${_("minutos")}.
     </div>
 </main>
