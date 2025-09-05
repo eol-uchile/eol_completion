@@ -2,9 +2,9 @@ import setuptools
 
 setuptools.setup(
     name="eol_completion",
-    version="0.0.1",
-    author="Luis Santana",
-    author_email="luis.santana@uchile.cl",
+    version="1.0.0",
+    author="Oficina EOL UChile",
+    author_email="eol-ing@uchile.cl",
     description="Eol Completion",
     long_description="Eol Completion",
     url="https://eol.uchile.cl",
