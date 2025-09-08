@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from mock import patch
+# Python Standard Libraries
+import json
 
+# Installed packages (via pip)
 from django.test import Client
+from django.test.utils import override_settings
 from django.urls import reverse
-from common.djangoapps.util.testing import UrlResetMixin
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from mock import patch
+from six.moves import range
 
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+# Edx dependencies
 from common.djangoapps.student.roles import CourseStaffRole
 from common.djangoapps.student.tests.factories import UserFactory, CourseEnrollmentFactory, CourseAccessRoleFactory
-from completion import models
-from opaque_keys.edx.keys import LearningContextKey
+from common.djangoapps.util.testing import UrlResetMixin
 from lms.djangoapps.certificates.models import GeneratedCertificate
-from django.test.utils import override_settings
-from six.moves import range
-import json
+from opaque_keys.edx.keys import LearningContextKey
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+
+# Internal project dependencies
+from completion import models
 
 USER_COUNT = 11
 
@@ -236,23 +241,18 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
-    def test_render_data_with_rut(self):
+    @patch('eol_completion.views.get_user_id_doc_id_pairs')
+    def test_render_data_with_doc_id(self, mock_user_id_doc_id_pairs):
         """
             Test get data normal process with edxloginuser
         """
-        try:
-            from unittest.case import SkipTest
-            from uchileedxlogin.models import EdxLoginUser
-        except ImportError:
-            self.skipTest("import error uchileedxlogin")
-        EdxLoginUser.objects.create(user=self.student, run='000000001K')
+        mock_user_id_doc_id_pairs.return_value = [(self.student.id, '000000001K')]
         url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
                 'course_id': self.course.id}))
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
-
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
@@ -260,16 +260,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
-    def test_render_data_with_rut_big_course(self):
+    @patch('eol_completion.views.get_user_id_doc_id_pairs')
+    def test_render_data_with_doc_id_big_course(self, mock_user_id_doc_id_pairs):
         """
             Test get data normal process with edxloginuser when is big course
         """
-        try:
-            from unittest.case import SkipTest
-            from uchileedxlogin.models import EdxLoginUser
-        except ImportError:
-            self.skipTest("import error uchileedxlogin")
-        edxlogin = EdxLoginUser.objects.create(user=self.student, run='000000001K')
+        mock_user_id_doc_id_pairs.return_value = [(self.student.id, '000000001K')]
         context_key = LearningContextKey.from_string(str(self.course.id))
         for item in self.items:
             usage_key = item.scope_ids.usage_id
@@ -285,13 +281,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
-
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 12)
         self.assertEqual(data['data'][-1][0], self.student.username)
-        self.assertEqual(data['data'][-1][1], edxlogin.run)
+        self.assertEqual(data['data'][-1][1], '000000001K')
         self.assertEqual(data['data'][-1][2], self.student.email)
         self.assertEqual(data['data'][-1][3], completion.modified.strftime("%d/%m/%Y, %H:%M:%S"))
 
