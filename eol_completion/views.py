@@ -1,48 +1,48 @@
 # -*- coding: utf-8 -*-
 
-
-
+# Python Standard Libraries
+import logging
 import six
-import json
-import math
-from django.conf import settings
-from datetime import datetime
-from lms.djangoapps.courseware.courses import get_course_with_access
-from django.template.loader import render_to_string
-from web_fragments.fragment import Fragment
-from django.core.cache import cache
-from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
-from lms.djangoapps.certificates.models import GeneratedCertificate
-from xblock.fields import Scope
-from opaque_keys.edx.keys import CourseKey, UsageKey, LearningContextKey
-from opaque_keys import InvalidKeyError
-from django.contrib.auth.models import User
-from django.urls import reverse
-from xblock_discussion import DiscussionXBlock
-from xmodule.modulestore.django import modulestore
-from xmodule.modulestore.inheritance import compute_inherited_metadata, own_metadata
-from lms.djangoapps.courseware.access import has_access, get_user_role
-from completion.models import BlockCompletion
 from collections import OrderedDict, defaultdict, deque
-from django.http import HttpResponse, Http404, HttpResponseServerError, JsonResponse
-from django.views.generic.base import View
-from opaque_keys.edx.locator import CourseLocator, BlockUsageLocator
-from celery import current_task, task
-from lms.djangoapps.instructor_task.tasks_base import BaseInstructorTask
-from lms.djangoapps.instructor_task.api_helper import submit_task
-from lms.djangoapps.instructor import permissions
+from datetime import datetime
 from functools import partial
 from time import time
-from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task, TaskProgress
-from django.db import IntegrityError, transaction
+
+# Installed packages (via pip)
+from celery import task
+from django.conf import settings
+from django.core.cache import cache
+from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Max
+from django.http import Http404, JsonResponse
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.translation import ugettext_noop
-from pytz import UTC
-from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
+from django.views.generic.base import View
 from numpy import sum
-from django.core.exceptions import FieldError
-import logging
-# Create your views here.
+from pytz import UTC
+from uchileedxlogin.services.interface import get_user_id_doc_id_pairs
+
+# Edx dependencies
+from lms.djangoapps.certificates.models import GeneratedCertificate
+from lms.djangoapps.courseware.access import has_access
+from lms.djangoapps.courseware.courses import get_course_with_access
+from lms.djangoapps.instructor import permissions
+from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError, submit_task
+from lms.djangoapps.instructor_task.tasks_base import BaseInstructorTask
+from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task, TaskProgress
+from opaque_keys.edx.keys import CourseKey, UsageKey, LearningContextKey
+from opaque_keys.edx.locator import BlockUsageLocator
+from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
+from web_fragments.fragment import Fragment
+from xblock_discussion import DiscussionXBlock
+from xblock.fields import Scope
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.inheritance import own_metadata
+
+# Internal project dependencies
+from completion.models import BlockCompletion
 
 logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
@@ -78,19 +78,18 @@ def task_get_tick(
         data = EolCompletionData().get_context_big_course(course_key)
     else:
         display_name_course = task_input["display_name"]
-        # try to get rut from edxloginuser model if this dont exists only get id, username and email
-        try:
-            enrolled_students = User.objects.filter(
-                courseenrollment__course_id=course_key,
-                courseenrollment__is_active=1,
-                courseenrollment__mode='honor'
-            ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run')
-        except FieldError:
-            enrolled_students = User.objects.filter(
+        enrolled_students = User.objects.filter(
                 courseenrollment__course_id=course_key,
                 courseenrollment__is_active=1,
                 courseenrollment__mode='honor'
             ).order_by('username').values('id', 'username', 'email')
+        user_id_list = enrolled_students.values_list('id', flat=True)
+        user_doc_id = get_user_id_doc_id_pairs(user_id_list)
+        if user_doc_id != []:
+            user_doc_id_dict = {username: doc_id for username, doc_id in user_doc_id}
+            for user in enrolled_students:
+                doc_id = user_doc_id_dict.get(user['id'], '')
+                user['doc_id'] = doc_id
         store = modulestore()
         data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
         if data_content is None:
@@ -383,32 +382,25 @@ class EolCompletionData(View, Content):
         last_block_completions= {}
         for x in aux_block_completions:
             last_block_completions[x['user']] = x['last_completed']
-        try:
-            enrolled_students = User.objects.filter(
-                    courseenrollment__course_id=course_key,
-                    courseenrollment__is_active=1,
-                    courseenrollment__mode='honor'
-                ).order_by('username').values('id', 'username', 'email', 'edxloginuser__run', 'last_login')
-
-            context = [
-                [x['username'], 
-                x['edxloginuser__run'] if x['edxloginuser__run'] else '', 
-                x['email'], 
-                last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '', 
-                x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
-            ]
-        except FieldError:
-            enrolled_students = User.objects.filter(
-                    courseenrollment__course_id=course_key,
-                    courseenrollment__is_active=1,
-                    courseenrollment__mode='honor'
-                ).order_by('username').values('id', 'username', 'email', 'last_login')
-            context = [
-                [x['username'], 
-                x['email'], 
-                last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '',
-                x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
-            ]
+        enrolled_students = User.objects.filter(
+                courseenrollment__course_id=course_key,
+                courseenrollment__is_active=1,
+                courseenrollment__mode='honor'
+            ).order_by('username').values('id', 'username', 'email', 'last_login')
+        user_id_list = enrolled_students.values_list('id', flat=True)
+        user_doc_id = get_user_id_doc_id_pairs(user_id_list)
+        if user_doc_id != []:
+            user_doc_id_dict = {id: doc_id for id, doc_id in user_doc_id}
+            for user in enrolled_students:
+                doc_id = user_doc_id_dict.get(user['id'], '')
+                user['doc_id'] = doc_id
+        context = [
+            [x['username'], 
+            x['doc_id'], 
+            x['email'], 
+            last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '', 
+            x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
+        ]
         if len(context) == 0:
             context = [[True]]
         return {'data': context}
@@ -428,7 +420,7 @@ class EolCompletionData(View, Content):
         students_id = [x['id'] for x in enrolled_students]
         students_username = [x['username'] for x in enrolled_students]
         students_email = [x['email'] for x in enrolled_students]
-        students_rut = [x['edxloginuser__run'] if 'edxloginuser__run' in x else '' for x in enrolled_students]
+        students_doc_id = [x['doc_id'] for x in enrolled_students]
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
@@ -439,7 +431,7 @@ class EolCompletionData(View, Content):
             # and number of completed units
             data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
-            aux_user_tick.appendleft(students_rut[i - 1] if students_rut[i - 1] != None else '')
+            aux_user_tick.appendleft(students_doc_id[i - 1] if students_doc_id[i - 1] != None else '')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
