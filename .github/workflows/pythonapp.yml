@@ -2,18 +2,24 @@ name: Python application
 
 on:
   push:
-    paths-ignore:
-      - '.github/workflows/**'
+    branches:
+      - 'eol-release/*'
   pull_request:
     types:
       - opened
       - reopened
       - synchronize
     branches:
-      - 'master'
-    paths-ignore:
-      - '.github/workflows/**'
+      - 'eol-release/*'
 
 jobs:
-  build:
-    uses: eol-uchile/eol_feedback/.github/workflows/pythonapp.yml@master
+  test:
+    uses: eol-uchile/workflow-commons/.github/workflows/pythonapp.yml@pythonapp-2
+    with:
+      app_id: ${{ vars.EOLITO_BOT_APP_ID }}
+      django-lms: true
+      django-cms: false
+      platform-eol: true
+      platform-openuchile: false
+    secrets:
+      private_key: ${{ secrets.EOLITO_BOT_PRIVATE_KEY }}
