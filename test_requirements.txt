@@ -1,0 +1,1 @@
+-e git+https://github.com/eol-uchile/uchileedxlogin@1.0.0#egg=uchileedxlogin
