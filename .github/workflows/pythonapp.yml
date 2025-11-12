@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Run Tests
       run: |        
         cd .github/
-        docker-compose run lms /openedx/requirements/eol_completion/.github/test.sh
+        docker compose run lms /openedx/requirements/eol_completion/.github/test.sh
