@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_noop
 from django.views.generic.base import View
 from numpy import sum
 from pytz import UTC
-from uchileedxlogin.services.interface import get_user_id_doc_id_pairs
+from eol_sso.services.interface import get_user_id_with_indiv_id_list
 
 # Edx dependencies
 from lms.djangoapps.certificates.models import GeneratedCertificate
@@ -84,12 +84,12 @@ def task_get_tick(
                 courseenrollment__mode='honor'
             ).order_by('username').values('id', 'username', 'email')
         user_id_list = enrolled_students.values_list('id', flat=True)
-        user_doc_id = get_user_id_doc_id_pairs(user_id_list)
-        if user_doc_id != []:
-            user_doc_id_dict = {username: doc_id for username, doc_id in user_doc_id}
+        user_indiv_id_list = get_user_id_with_indiv_id_list(user_id_list)
+        if user_indiv_id_list != []:
+            user_indiv_id_dict = {user_id: indiv_id for user_id, indiv_id in user_indiv_id_list}
             for user in enrolled_students:
-                doc_id = user_doc_id_dict.get(user['id'], '')
-                user['doc_id'] = doc_id
+                indiv_id = user_indiv_id_dict.get(user['id'], '')
+                user['indiv_id'] = indiv_id
         store = modulestore()
         data_content = cache.get("eol_completion-" + task_input["course_id"] + "-content")
         if data_content is None:
@@ -388,15 +388,15 @@ class EolCompletionData(View, Content):
                 courseenrollment__mode='honor'
             ).order_by('username').values('id', 'username', 'email', 'last_login')
         user_id_list = enrolled_students.values_list('id', flat=True)
-        user_doc_id = get_user_id_doc_id_pairs(user_id_list)
-        if user_doc_id != []:
-            user_doc_id_dict = {id: doc_id for id, doc_id in user_doc_id}
+        user_indiv_id_list = get_user_id_with_indiv_id_list(user_id_list)
+        if user_indiv_id_list != []:
+            user_indiv_id_dict = {id: indiv_id for id, indiv_id in user_indiv_id_list}
             for user in enrolled_students:
-                doc_id = user_doc_id_dict.get(user['id'], '')
-                user['doc_id'] = doc_id
+                indiv_id = user_indiv_id_dict.get(user['id'], '')
+                user['indiv_id'] = indiv_id
         context = [
             [x['username'], 
-            x['doc_id'], 
+            x['indiv_id'], 
             x['email'], 
             last_block_completions[x['id']].strftime("%d/%m/%Y, %H:%M:%S") if x['id'] in last_block_completions else '', 
             x['last_login'].strftime("%d/%m/%Y, %H:%M:%S") if x['last_login'] else ''] for x in enrolled_students
@@ -420,7 +420,7 @@ class EolCompletionData(View, Content):
         students_id = [x['id'] for x in enrolled_students]
         students_username = [x['username'] for x in enrolled_students]
         students_email = [x['email'] for x in enrolled_students]
-        students_doc_id = [x['doc_id'] for x in enrolled_students]
+        students_indiv_id = [x['indiv_id'] for x in enrolled_students]
         i = 0
         certificate = self.get_certificate(students_id, course_key)
         blocks = self.get_block(students_id, course_key)
@@ -431,7 +431,7 @@ class EolCompletionData(View, Content):
             # and number of completed units
             data, aux_completion = self.get_data_tick(content, info, user, blocks, max_unit)
             aux_user_tick = deque(data)
-            aux_user_tick.appendleft(students_doc_id[i - 1] if students_doc_id[i - 1] != None else '')
+            aux_user_tick.appendleft(students_indiv_id[i - 1] if students_indiv_id[i - 1] != None else '')
             aux_user_tick.appendleft(students_username[i - 1])
             aux_user_tick.appendleft(students_email[i - 1])
             aux_user_tick.append('Si' if user in certificate else 'No')
