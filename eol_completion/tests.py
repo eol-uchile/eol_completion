@@ -241,12 +241,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
-    @patch('eol_completion.views.get_user_id_doc_id_pairs')
-    def test_render_data_with_doc_id(self, mock_user_id_doc_id_pairs):
+    @patch('eol_completion.views.get_user_id_with_indiv_id_list')
+    def test_render_data_with_indiv_id(self, mock_user_id_with_indiv_id_list):
         """
             Test get data normal process with edxloginuser
         """
-        mock_user_id_doc_id_pairs.return_value = [(self.student.id, '000000001K')]
+        mock_user_id_with_indiv_id_list.return_value = [(self.student.id, '000000001K')]
         url = '{}?is_bigcourse=0'.format(reverse(
             'completion_data_view', kwargs={
                 'course_id': self.course.id}))
@@ -260,12 +260,12 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
-    @patch('eol_completion.views.get_user_id_doc_id_pairs')
-    def test_render_data_with_doc_id_big_course(self, mock_user_id_doc_id_pairs):
+    @patch('eol_completion.views.get_user_id_with_indiv_id_list')
+    def test_render_data_with_indiv_id_big_course(self, mock_user_id_with_indiv_id_list):
         """
             Test get data normal process with edxloginuser when is big course
         """
-        mock_user_id_doc_id_pairs.return_value = [(self.student.id, '000000001K')]
+        mock_user_id_with_indiv_id_list.return_value = [(self.student.id, '000000001K')]
         context_key = LearningContextKey.from_string(str(self.course.id))
         for item in self.items:
             usage_key = item.scope_ids.usage_id
