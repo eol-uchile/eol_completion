@@ -1,0 +1,1 @@
+-e git+https://github.com/eol-uchile/eol_sso@1.0.1#egg=eol_sso
