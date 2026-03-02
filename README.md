@@ -1,5 +1,9 @@
 # EOL Completion
 
+![Coverage Status](/coverage-badge.svg)
+
+![https://github.com/eol-uchile/eol_completion/actions](https://github.com/eol-uchile/eol_completion/workflows/Python%20application/badge.svg) 
+
 Adding student units tracking.
 
 # Install
