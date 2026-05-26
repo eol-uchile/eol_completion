@@ -25,6 +25,7 @@ from pytz import UTC
 from eol_sso.services.interface import get_user_id_with_indiv_id_list
 
 # Edx dependencies
+from common.djangoapps.student.models import CourseAccessRole
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.courses import get_course_with_access
@@ -78,10 +79,14 @@ def task_get_tick(
         data = EolCompletionData().get_context_big_course(course_key)
     else:
         display_name_course = task_input["display_name"]
+        staff_query = CourseAccessRole.objects.filter(
+                course_id=course_key
+            ).values('user_id')
         enrolled_students = User.objects.filter(
                 courseenrollment__course_id=course_key,
-                courseenrollment__is_active=1,
-                courseenrollment__mode='honor'
+                courseenrollment__is_active=1
+            ).exclude(
+                id__in=staff_query
             ).order_by('username').values('id', 'username', 'email')
         user_id_list = enrolled_students.values_list('id', flat=True)
         user_indiv_id_list = get_user_id_with_indiv_id_list(user_id_list)
@@ -262,11 +267,16 @@ class EolCompletionFragmentView(EdxFragmentView, Content):
         limit_student = LIMIT_STUDENTS
         if hasattr(settings, 'EOL_COMPLETION_LIMIT_STUDENT'):
             limit_student = settings.EOL_COMPLETION_LIMIT_STUDENT 
-        is_big = limit_student < User.objects.filter(
+        staff_query = CourseAccessRole.objects.filter(
+            course_id=course_key
+        ).values('user_id')
+        student_count = User.objects.filter(
             courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1,
-            courseenrollment__mode='honor'
+            courseenrollment__is_active=1
+        ).exclude(
+            id__in=staff_query
         ).count()
+        is_big = limit_student < student_count
         if not is_big:
             context = self.get_context(request, course_id, course, course_key)
             html = render_to_string(
@@ -382,11 +392,15 @@ class EolCompletionData(View, Content):
         last_block_completions= {}
         for x in aux_block_completions:
             last_block_completions[x['user']] = x['last_completed']
+        staff_query = CourseAccessRole.objects.filter(
+            course_id=course_key
+        ).values('user_id')
         enrolled_students = User.objects.filter(
-                courseenrollment__course_id=course_key,
-                courseenrollment__is_active=1,
-                courseenrollment__mode='honor'
-            ).order_by('username').values('id', 'username', 'email', 'last_login')
+            courseenrollment__course_id=course_key,
+            courseenrollment__is_active=1
+        ).exclude(
+            id__in=staff_query
+        ).order_by('username').values('id', 'username', 'email', 'last_login')
         user_id_list = enrolled_students.values_list('id', flat=True)
         user_indiv_id_list = get_user_id_with_indiv_id_list(user_id_list)
         if user_indiv_id_list != []:
