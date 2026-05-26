@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 
 # Python Standard Libraries
-import logging
-import six
 from collections import OrderedDict, defaultdict, deque
 from datetime import datetime
 from functools import partial
+from itertools import islice
+import json
+import logging
+import six
 from time import time
+import zlib
 
 # Installed packages (via pip)
 from celery import task
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth.models import User
-from django.db import transaction
-from django.db.models import Max
+from django.db import transaction, connection
+from django.db.models import Max, Count, Q
 from django.http import Http404, JsonResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.translation import ugettext_noop
 from django.views.generic.base import View
-from numpy import sum
+import numpy as np
 from pytz import UTC
 from eol_sso.services.interface import get_user_id_with_indiv_id_list
 
@@ -121,6 +124,12 @@ def task_get_tick(
     data['is_bigcourse'] = is_bigcourse
     data['time_queue'] = str(TIME_CACHE / 60)
     current_step = {'step': 'Uploading Data Eol Completion'}
+    # This was modified to make a comparison with a larger scale of users. Since the matrix will be larger, it is no longer just a processing problem, but rather a memory (caching) storage problem
+    try:
+        data = zlib.compress(json.dumps(data).encode('utf-8'))
+    except Exception as e:
+        logger.error(f"EolCompletion compress error: {e}")
+
     cache.set(
         "eol_completion-" +
         task_input["course_id"] +
@@ -373,6 +382,13 @@ class EolCompletionData(View, Content):
             Return eol completion data
         """
         data = cache.get("eol_completion-" + course_id + "-data")
+        if data is not None:
+            if isinstance(data, bytes):
+                try:
+                    data = json.loads(zlib.decompress(data).decode('utf-8'))
+                except Exception as e:
+                    logger.error(f"EolCompletion decompress error: {e}")
+
         if data is None:
             data = {"data": [[False]]}
             try:
@@ -455,7 +471,7 @@ class EolCompletionData(View, Content):
             else:
                 aux_completion.append(0)
             if len(completion) != 0:
-                completion = sum([completion, aux_completion], 0)
+                completion = np.sum([completion, aux_completion], 0)
             else:
                 completion = aux_completion
         completion = [str(x) for x in completion]
@@ -556,3 +572,348 @@ class EolCompletionData(View, Content):
         cer_students_id = [x["user_id"] for x in certificates]
 
         return cer_students_id
+
+## FAST IMPLEMENTATION
+@task(base=BaseInstructorTask, queue='edx.lms.core.low')
+def process_tick_fast(entry_id, xmodule_instance_args):
+    action_name = ugettext_noop('generated')
+    task_fn = partial(task_get_tick_fast, xmodule_instance_args)
+    return run_main_task(entry_id, task_fn, action_name)
+
+def task_get_tick_fast(
+        _xmodule_instance_args,
+        _entry_id,
+        course_id,
+        task_input,
+        action_name):
+    course_key = course_id
+    start_time = time()
+    start_date = datetime.now(UTC)
+    task_progress = TaskProgress(
+        action_name,
+        1,
+        start_time)
+    is_bigcourse = task_input["is_bigcourse"] == '1'
+    if is_bigcourse:
+        data = EolCompletionData().get_context_big_course(course_key)
+    else:
+        display_name_course = task_input["display_name"]
+        staff_query = CourseAccessRole.objects.filter(
+                course_id=course_key
+            ).values('user_id')
+        enrolled_students = User.objects.filter(
+                courseenrollment__course_id=course_key,
+                courseenrollment__is_active=1
+            ).exclude(
+                id__in=staff_query
+            ).order_by('username').values('id', 'username', 'email')
+        user_id_list = enrolled_students.values_list('id', flat=True)
+        user_indiv_id_list = get_user_id_with_indiv_id_list(user_id_list)
+        if user_indiv_id_list != []:
+            user_indiv_id_dict = {user_id: indiv_id for user_id, indiv_id in user_indiv_id_list}
+            for user in enrolled_students:
+                indiv_id = user_indiv_id_dict.get(user['id'], '')
+                user['indiv_id'] = indiv_id
+        store = modulestore()
+        data_content = cache.get("eol_completion-fast-" + task_input["course_id"] + "-content")
+        if data_content is None:
+            info = Content().dump_module(store.get_course(course_key))
+            id_course = str(BlockUsageLocator(course_key, "course", "course"))
+            if 'i4x://' in id_course:
+                id_course = str(
+                    BlockUsageLocator(
+                        course_key,
+                        "course",
+                        display_name_course))
+            content, max_unit = Content().get_content(info, id_course)
+        else:
+            info = data_content[2]
+            content = data_content[0]
+            max_unit = data_content[1]
+            
+        data = EolCompletionDataFast().get_ticks_fast(
+            content, info, enrolled_students, course_key, max_unit)
+
+    times = datetime.now()
+    times = times.strftime("%d/%m/%Y, %H:%M:%S")
+    data['time'] = times
+    data['is_bigcourse'] = is_bigcourse
+    data['time_queue'] = str(TIME_CACHE / 60)
+    current_step = {'step': 'Uploading Data Eol Completion Fast'}
+    # This was modified to make a comparison with a larger scale of users. Since the matrix will be larger, it is no longer just a processing problem, but rather a memory (caching) storage problem
+    try:
+        data = zlib.compress(json.dumps(data).encode('utf-8'))
+    except Exception as e:
+        logger.error(f"EolCompletionFast compress error: {e}")
+
+    cache.set(
+        "eol_completion-fast-" +
+        task_input["course_id"] +
+        "-data",
+        data,
+        TIME_CACHE)
+
+    return task_progress.update_task_state(extra_meta=current_step)
+
+def task_process_tick_fast(request, course_id, display_name_course, is_bigcourse):
+    course_key = CourseKey.from_string(course_id)
+    task_type = 'EOL_Completion_Fast'
+    task_class = process_tick_fast
+    task_input = {'course_id': course_id, 'display_name': display_name_course, 'is_bigcourse': is_bigcourse}
+    task_key = course_id
+
+    return submit_task(
+        request,
+        task_type,
+        task_class,
+        course_key,
+        task_input,
+        task_key)
+
+class EolCompletionFragmentFastView(EolCompletionFragmentView):
+
+    def get_context(self, request, course_id, course, course_key):
+        """
+            Returns headers table
+        """
+        data = cache.get("eol_completion-fast-" + course_id + "-content")
+        if data is None:
+            store = modulestore()
+            # Dictionary with all course blocks
+            # verificar si hay contenido
+            info = self.dump_module(store.get_course(course_key))
+
+            id_course = str(BlockUsageLocator(course_key, "course", "course"))
+            if 'i4x://' in id_course:
+                id_course = str(
+                    BlockUsageLocator(
+                        course_key,
+                        "course",
+                        course.display_name))
+            data = []
+            content, maxn = self.get_content(info, id_course)
+
+            data.extend([content])
+            data.extend([maxn])
+            data.extend([info])
+            cache.set("eol_completion-fast-" + course_id + "-content", data, TIME_CACHE)
+
+        context = {
+            "course": course,
+            'page_url': reverse(
+                'completion_fast_view',
+                kwargs={
+                    'course_id': six.text_type(course_key)}),
+            'data_url': '{}?is_bigcourse=0'.format(reverse(
+                'completion_data_fast_view',
+                kwargs={
+                    'course_id': six.text_type(course_key)})),
+            "content": data[0],
+            "max_unit": data[1]}
+
+        return context
+
+class EolCompletionDataFast(EolCompletionData):
+    
+    def get_context(self, request, course_id, display_name_course, is_bigcourse):
+        """
+            Return eol completion data
+        """
+        data = cache.get("eol_completion-fast-" + course_id + "-data")
+        if data is not None:
+            if isinstance(data, bytes):
+                try:
+                    data = json.loads(zlib.decompress(data).decode('utf-8'))
+                except Exception as e:
+                    logger.error(f"EolCompletionFast decompress error: {e}")
+                
+        if data is None:
+            data = {"data": [[False]]}
+            try:
+                task_process_tick_fast(request, course_id, display_name_course, is_bigcourse)
+            except AlreadyRunningError:
+                pass
+        context = data
+
+        return context
+    
+    def get_ticks_fast(
+            self, 
+            content, 
+            info, 
+            enrolled_students, 
+            course_key, 
+            max_unit):
+        """
+            Dictionary of students with ticks if students completed the units
+        """
+        # Do not process the course in case you have 0 students enrolled
+        if not enrolled_students:
+            return {'data': [[True]], 'completion': []}
+        
+        students_id, students_username, students_email, students_indiv_id = map(list, zip(*((x['id'], x['username'], x['email'], x['indiv_id']) for x in enrolled_students)))
+
+        def get_certificates(students_id, course_key):
+            """
+                Return ('Si'/'No', 0/1) certificate indicators for given students in a course.
+            """
+            certificates = GeneratedCertificate.objects.filter(status='downloadable', user_id__in=students_id, course_id=course_key).values_list("user_id", flat=True)
+            cert_flags = np.isin(students_id, list(set(certificates))).view(np.uint8)
+            cert_strs  = np.where(cert_flags, 'Si', 'No')
+            return cert_strs, cert_flags
+        
+        cert_strs, cert_flags = get_certificates(students_id, course_key)
+
+        def get_units(info, not_completable_blocks=('discussion+block', 'eoldiscussion+block')):
+            """Extract unit requirements and section sizes from a course structure.
+
+                Returns:
+                - unit_reqs: list of tuples of UsageKeys for completable blocks in each unit
+                - section_sizes: number of non-empty units per section
+
+                Process `info` (info = Content().dump_module(store.get_course(course_key))) to identify required blocks per unit and section.
+
+                Hierarchy: course -> chapter(section) -> sequential(subsection) -> vertical(unit)
+            """
+            course_root = next((v for v in info.values() if v.get('category') == 'course'), None)
+            if not course_root:
+                return [], []
+            unit_reqs = []
+            section_sizes = []
+            for section_id in course_root.get('children', []):
+                section = info.get(section_id, {})
+                curr_sec = 0
+                for subsection_id in section.get('children', []):
+                    subsection = info.get(subsection_id, {})
+                    for unit_id in subsection.get('children', []):
+                        unit = info.get(unit_id, {})
+                        children = unit.get('children', [])
+                        if children:
+                            # The blocks of type `discussion+block` y `eoldiscussion+block` are discarded, as in https://github.com/eol-uchile/eol_completion/blob/8d90f07eb0f2ffa639007f9893c8876fd6f8441f/eol_completion/views.py#L487
+                            unit_reqs.append(tuple(UsageKey.from_string(b) for b in children if all(x not in b for x in not_completable_blocks)))
+                            curr_sec += 1
+                if curr_sec > 0:
+                    section_sizes.append(curr_sec)
+            return unit_reqs, section_sizes
+        
+        unit_reqs, section_sizes = get_units(info)
+
+        unique_blocks = [item for sublist in unit_reqs for item in sublist] # All course completable blocks in the course, concatenated by unit
+        
+        N = len(students_id)    # Number of students
+        B = len(unique_blocks)  # Number of completable blocks in the course
+        U = len(unit_reqs)      # Number of units in the course (verticals)
+
+        if B > 0:
+            user_idx_map = {uid: i for i, uid in enumerate(students_id)}
+            user_ids   = [int(uid) for uid in students_id]
+
+            block_idx_map = {b: k for k, b in enumerate(unique_blocks)}
+            block_keys = [str(k) for k in block_idx_map.keys()]
+            block_idx_map_keys = {b: k for k, b in enumerate(block_keys)} # Gives an additional numerical order to the blocks
+            
+            # Fetch all matching block completions and populate the C matrix
+            context_key = LearningContextKey.from_string(str(course_key))
+                        
+            def chunked(iterable, size):
+                """
+                Yield successive lists of length size from iterable.
+                """
+                it = iter(iterable)
+                while chunk := list(islice(it, size)):
+                    yield chunk
+            
+            def build_completion_matrix(user_ids, block_keys, user_idx_map, block_idx_map_keys, context_key, chunk_size=1000):
+                """
+                Builds the N x B completion matrix by streaming DB results directly into
+                the matrix - never accumulating all rows in memory at once.
+                """
+                COMPLETION_TABLE_NAME = 'completion_blockcompletion'
+                N = len(user_ids)
+                B = len(block_keys)
+                C = np.zeros((N, B), dtype=np.uint8)
+                block_placeholders = ','.join(['%s'] * len(block_keys))
+                for user_chunk in chunked(user_ids, chunk_size):
+                    user_placeholders = ','.join(['%s'] * len(user_chunk))
+                    query = f"""
+                        SELECT user_id, block_key FROM {COMPLETION_TABLE_NAME} WHERE course_key = %s AND completion = 1.0 
+                        AND user_id IN ({user_placeholders}) AND block_key IN ({block_placeholders})
+                    """
+                    params = [str(context_key)] + user_chunk + block_keys
+
+                    with connection.cursor() as cursor:
+                        cursor.execute(query, params)
+                        # write directly into matrix C
+                        row_idx, col_idx = [], []
+                        # iterate the cursor
+                        for uid, bk in cursor:
+                            if uid in user_idx_map and bk in block_idx_map_keys:
+                                row_idx.append(user_idx_map[uid])
+                                col_idx.append(block_idx_map_keys[bk])
+                        if row_idx:
+                            C[row_idx, col_idx] = 1
+                return C
+                
+            C = build_completion_matrix(user_ids, block_keys, user_idx_map, block_idx_map_keys, context_key, chunk_size=1000)
+
+            # Construct a matrix M (B blocks x U units)
+            M = np.zeros((B, U), dtype=np.uint8)
+            if unit_reqs:
+                pairs = np.array([(block_idx_map[b], j) for j, req in enumerate(unit_reqs) for b in req], dtype=np.intp,)
+                if pairs.size:
+                    M[pairs[:, 0], pairs[:, 1]] = 1
+
+            # Compute Unit completions as a matrix product C * M
+            # If student completed all required blocks for a unit, the product equals the block count. 
+            # Then to determine if a unit is completed, the number of completed blocks is compared with the number of completable blocks in that unit.
+            # UC (N x U) =  C (N x B) * M (B x U) == M.sum (U)
+            unit_completions = (C @ M == M.sum(axis=0)).astype(np.bool_)
+        else:
+            # If no blocks are required, assume all units are implicitly completed
+            unit_completions = np.ones((N, U), dtype=np.bool_)
+        
+        TICK = '&#10004;'
+        cols = []
+        completion_acc = []
+        
+        # Aggregate unit completions per section as fractions (e.g. '3/4')
+        start_u = 0
+        for size in section_sizes:
+            if size <= 0:
+                continue
+            end_u = start_u + size
+            sec_units = unit_completions[:, start_u:end_u]
+            unit_strs = np.where(sec_units == 1, TICK, '')
+            for j in range(size):
+                cols.append(unit_strs[:, j])
+                completion_acc.append(np.sum(sec_units[:, j]))
+            sec_sum = np.sum(sec_units, axis=1)
+            cols.append(np.array([f"{v}/{size}" for v in sec_sum], dtype=object))
+            sec_done_flags = (sec_sum == size).astype(int)
+            completion_acc.append(np.sum(sec_done_flags))
+            start_u = end_u
+            
+        # Aggregate global total fraction of completions for the entire course (e.g. '12/12')
+        total_sum = np.sum(unit_completions, axis=1)
+        total_strs = np.char.add(total_sum.astype(str), f"/{max_unit}")
+        cols.append(total_strs)
+        
+        if max_unit > 0:
+            total_done_flags = (total_sum == max_unit).astype(int)
+        else:
+            total_done_flags = np.zeros(N, dtype=int)
+            
+        completion_acc.append(np.sum(total_done_flags))        
+        completion_acc.append(np.sum(cert_flags))
+        
+        # Horizontally stack student metadata with computed columns into a final dictionary
+        indiv_ids = np.array([x if x is not None else '' for x in students_indiv_id], dtype=object)
+        usernames = np.array(students_username, dtype=object)
+        emails = np.array(students_email, dtype=object)
+        
+        data_matrix = np.column_stack([emails, usernames, indiv_ids] + cols + [cert_strs])
+        user_tick = {
+            'data': data_matrix.tolist(),
+            'completion': [str(x) for x in completion_acc]
+        }
+        return user_tick
