@@ -151,11 +151,19 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                     username='staff_user',
                     password='test'))
 
+    def get_completion_url(self, course_id):
+        return reverse('completion_view', kwargs={'course_id': course_id})
+
+    def get_completion_data_url(self, course_id, is_bigcourse):
+        if is_bigcourse is not None:
+            return f'{reverse("completion_data_view", kwargs={"course_id": course_id})}?is_bigcourse={is_bigcourse}'
+        return reverse('completion_data_view', kwargs={'course_id': course_id})
+
     def test_render_page(self):
         """
             Test reder page normal process
         """
-        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        url = self.get_completion_url(self.course.id)
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
 
@@ -164,7 +172,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test reder page normal process when is big course
         """
-        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        url = self.get_completion_url(self.course.id)
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 200)
   
@@ -172,7 +180,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test reder page normal process with data_researcher_user
         """
-        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        url = self.get_completion_url(self.course.id)
         self.response = self.client_data_researcher.get(url)
         self.assertEqual(self.response.status_code, 200)
 
@@ -180,9 +188,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data normal process with data_researcher_user
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.client_data_researcher.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -207,9 +213,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 block_key=usage_key,
                 completion=1.0,
             )
-        url = '{}?is_bigcourse=1'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 1)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -247,9 +251,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
             Test get data normal process with edxloginuser
         """
         mock_user_id_with_indiv_id_list.return_value = [(self.student.id, '000000001K')]
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -275,9 +277,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 block_key=usage_key,
                 completion=1.0,
             )
-        url = '{}?is_bigcourse=1'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 1)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -294,9 +294,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data wrong course
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': 'course-v1:mss+MSS001+2019_2'}))
+        url = self.get_completion_data_url('course-v1:mss+MSS001+2019_2', 0)
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -304,9 +302,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test render page wrong course
         """
-        url = reverse(
-            'completion_view', kwargs={
-                'course_id': 'course-v1:mss+MSS001+2019_2'})
+        url = self.get_completion_url('course-v1:mss+MSS001+2019_2')
         self.response = self.staff_client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -314,7 +310,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test render page when user is not staff
         """
-        url = reverse('completion_view', kwargs={'course_id': self.course.id})
+        url = self.get_completion_url(self.course.id)
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -322,9 +318,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data when user is not staff
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -332,15 +326,11 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data when is_bigcourse is not defined or is wrong
         """
-        url = '{}'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, None)
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
-        url = '{}?is_bigcourse=asd'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 'asd')
         self.response = self.client.get(url)
         self.assertEqual(self.response.status_code, 404)
 
@@ -358,9 +348,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
                 completion=1.0,
             )
 
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -385,9 +373,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'downloadable')
 
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -406,9 +392,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         GeneratedCertificate.objects.create(
             user=self.student, course_id=self.course.id, status=u'unavailable')
 
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course.id}))
+        url = self.get_completion_data_url(self.course.id, 0)
         self.response = self.staff_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -424,9 +408,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data without content
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_no_content.id}))
+        url = self.get_completion_data_url(self.course_no_content.id, 0)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -443,9 +425,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data without users
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_no_user.id}))
+        url = self.get_completion_data_url(self.course_no_user.id, 0)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -459,9 +439,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data with empty course
         """
-        url = '{}?is_bigcourse=0'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_empty.id}))
+        url = self.get_completion_data_url(self.course_empty.id, 0)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -476,9 +454,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data without content
         """
-        url = '{}?is_bigcourse=1'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_no_content.id}))
+        url = self.get_completion_data_url(self.course_no_content.id, 1)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -496,9 +472,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data without users
         """
-        url = '{}?is_bigcourse=1'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_no_user.id}))
+        url = self.get_completion_data_url(self.course_no_user.id, 1)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -512,9 +486,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         """
             Test get data with empty course
         """
-        url = '{}?is_bigcourse=1'.format(reverse(
-            'completion_data_view', kwargs={
-                'course_id': self.course_empty.id}))
+        url = self.get_completion_data_url(self.course_empty.id, 1)
         self.response = self.super_client.get(url)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'],[[False]])
@@ -523,3 +495,30 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'], [[True]])
+
+class TestEolCompletionFastView(TestEolCompletionView):
+
+    def get_completion_url(self, course_id):
+        return reverse('completion_fast_view', kwargs={'course_id': course_id})
+    
+    def get_completion_data_url(self, course_id, is_bigcourse):
+        if is_bigcourse is not None:
+            return f'{reverse("completion_data_fast_view", kwargs={"course_id": course_id})}?is_bigcourse={is_bigcourse}'
+        return reverse('completion_data_fast_view', kwargs={'course_id': course_id})
+
+    def test_render_data_no_content(self):
+        """
+            Test get data without content
+        """
+        url = self.get_completion_data_url(self.course_no_content.id, 0)
+        self.response = self.super_client.get(url)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(data['data'],[[False]])
+
+        self.response = self.super_client.get(url)
+        self.assertEqual(self.response.status_code, 200)
+        data = json.loads(self.response.content.decode())
+        self.assertEqual(len(data['data']), 12)
+        self.assertEqual(data['completion'], ["0", "0"])
+        self.assertEqual(
+            data['data'][-1], ['student@edx.org', 'student', '', '0/0', 'No'])
