@@ -47,7 +47,7 @@ from xmodule.modulestore.inheritance import own_metadata
 
 # Internal project dependencies
 from completion.models import BlockCompletion
-from completion.exceptions import CompressionException
+from .exceptions import CompressionException
 
 logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
