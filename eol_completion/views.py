@@ -47,6 +47,7 @@ from xmodule.modulestore.inheritance import own_metadata
 
 # Internal project dependencies
 from completion.models import BlockCompletion
+from completion.exceptions import CompressionException
 
 logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
@@ -388,6 +389,7 @@ class EolCompletionData(View, Content):
                     data = json.loads(zlib.decompress(data).decode('utf-8'))
                 except Exception as e:
                     logger.error(f"EolCompletion decompress error: {e}")
+                    raise CompressionException(f"Failed to decompress cached data for course_id={course_id}") from e
 
         if data is None:
             data = {"data": [[False]]}
@@ -726,6 +728,7 @@ class EolCompletionDataFast(EolCompletionData):
                     data = json.loads(zlib.decompress(data).decode('utf-8'))
                 except Exception as e:
                     logger.error(f"EolCompletionFast decompress error: {e}")
+                    raise CompressionException(f"Failed to decompress cached data for course_id={course_id}") from e
                 
         if data is None:
             data = {"data": [[False]]}
