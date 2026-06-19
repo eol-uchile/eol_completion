@@ -5,10 +5,10 @@ from collections import OrderedDict, defaultdict, deque
 from datetime import datetime
 from functools import partial
 from itertools import islice
+from time import time
 import json
 import logging
 import six
-from time import time
 import zlib
 
 # Installed packages (via pip)
@@ -23,12 +23,13 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.translation import ugettext_noop
 from django.views.generic.base import View
-import numpy as np
 from pytz import UTC
 from eol_sso.services.interface import get_user_id_with_indiv_id_list
+import numpy as np
 
 # Edx dependencies
 from common.djangoapps.student.models import CourseAccessRole
+from completion.models import BlockCompletion
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.courses import get_course_with_access
@@ -46,7 +47,6 @@ from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.inheritance import own_metadata
 
 # Internal project dependencies
-from completion.models import BlockCompletion
 from .exceptions import CompressionException
 
 logger = logging.getLogger(__name__)
