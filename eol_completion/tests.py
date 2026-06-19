@@ -417,9 +417,9 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
         self.assertEqual(len(data['data']), 12)
-        self.assertEqual(data['completion'], ["0", "0", "0"])
+        self.assertEqual(data['completion'], ["0", "0"])
         self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '', '0/0', '0/0', 'No'])
+            data['data'][-1], ['student@edx.org', 'student', '', '0/0', 'No'])
 
     def test_render_data_no_users(self):
         """
@@ -495,30 +495,3 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(self.response.status_code, 200)
         data = json.loads(self.response.content.decode())
         self.assertEqual(data['data'], [[True]])
-
-class TestEolCompletionFastView(TestEolCompletionView):
-
-    def get_completion_url(self, course_id):
-        return reverse('completion_fast_view', kwargs={'course_id': course_id})
-    
-    def get_completion_data_url(self, course_id, is_bigcourse):
-        if is_bigcourse is not None:
-            return f'{reverse("completion_data_fast_view", kwargs={"course_id": course_id})}?is_bigcourse={is_bigcourse}'
-        return reverse('completion_data_fast_view', kwargs={'course_id': course_id})
-
-    def test_render_data_no_content(self):
-        """
-            Test get data without content
-        """
-        url = self.get_completion_data_url(self.course_no_content.id, 0)
-        self.response = self.super_client.get(url)
-        data = json.loads(self.response.content.decode())
-        self.assertEqual(data['data'],[[False]])
-
-        self.response = self.super_client.get(url)
-        self.assertEqual(self.response.status_code, 200)
-        data = json.loads(self.response.content.decode())
-        self.assertEqual(len(data['data']), 12)
-        self.assertEqual(data['completion'], ["0", "0"])
-        self.assertEqual(
-            data['data'][-1], ['student@edx.org', 'student', '', '0/0', 'No'])
