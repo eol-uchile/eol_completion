@@ -19,7 +19,5 @@ jobs:
       app_id: ${{ vars.EOLITO_BOT_APP_ID }}
       django-lms: true
       django-cms: false
-      platform-eol: true
-      platform-openuchile: false
     secrets:
       private_key: ${{ secrets.EOLITO_BOT_PRIVATE_KEY }}
