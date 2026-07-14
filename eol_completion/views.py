@@ -6,8 +6,10 @@ from datetime import datetime
 from functools import partial
 from itertools import islice
 from time import time
+import json
 import logging
 import six
+import zlib
 
 # Installed packages (via pip)
 from celery import task
@@ -43,6 +45,9 @@ from xblock_discussion import DiscussionXBlock
 from xblock.fields import Scope
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.inheritance import own_metadata
+
+# Internal project dependencies
+from .exceptions import CompressionException
 
 logger = logging.getLogger(__name__)
 FILTER_LIST = ['xml_attributes']
@@ -120,6 +125,13 @@ def task_get_tick(
     data['is_bigcourse'] = is_bigcourse
     data['time_queue'] = str(TIME_CACHE / 60)
     current_step = {'step': 'Uploading Data Eol Completion'}
+    # This was modified to make a comparison with a larger scale of users. Since the matrix will be larger, it is no longer just a processing problem, but rather a memory (caching) storage problem
+    try:
+        data = zlib.compress(json.dumps(data).encode('utf-8'))
+    except (zlib.error, TypeError, ValueError) as e:
+        logger.error(f"EolCompletion compress error: {e}")
+        raise CompressionException(f"Failed to compress cached data for course_id={course_id}") from e
+
     cache.set(
         "eol_completion-" +
         task_input["course_id"] +
@@ -372,6 +384,14 @@ class EolCompletionData(View, Content):
             Return eol completion data
         """
         data = cache.get("eol_completion-" + course_id + "-data")
+        if data is not None:
+            if isinstance(data, bytes):
+                try:
+                    data = json.loads(zlib.decompress(data).decode('utf-8'))
+                except Exception as e:
+                    logger.error(f"EolCompletion decompress error: {e}")
+                    raise CompressionException(f"Failed to decompress cached data for course_id={course_id}") from e
+
         if data is None:
             data = {"data": [[False]]}
             try:
