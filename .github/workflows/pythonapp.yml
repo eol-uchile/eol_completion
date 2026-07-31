@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    uses: eol-uchile/workflow-commons/.github/workflows/pythonapp.yml@pythonapp-2
+    uses: eol-uchile/workflow-commons/.github/workflows/pythonapp.yml@pythonapp-2 
     with:
       app_id: ${{ vars.EOLITO_BOT_APP_ID }}
       django-lms: true
