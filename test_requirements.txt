@@ -1,2 +1,2 @@
 -e git+https://github.com/eol-uchile/uchileedxlogin@2.0.2+l#egg=uchileedxlogin
--e git+https://github.com/eol-uchile/eol_sso@1.3.1+l#egg=eol_sso
+-e git+https://github.com/eol-uchile/eol_sso@1.4.0+l#egg=eol_sso
