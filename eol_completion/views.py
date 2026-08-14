@@ -447,7 +447,7 @@ class EolCompletionData(View, Content):
         cert_strs  = np.where(cert_flags, 'Si', 'No')
         return cert_strs, cert_flags
             
-    def get_units(self, info, not_completable_blocks=('discussion+block', 'eoldiscussion+block')):
+    def get_units(self, info, not_completable_blocks=('discussion+block', 'eoldiscussion+block', 'invideoquiz+block')):
         """Extract unit requirements and section sizes from a course structure.
 
             Returns:
