@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="eol_completion",
-    version="2.1.1",
+    version="2.1.2",
     author="Oficina EOL UChile",
     author_email="eol-ing@uchile.cl",
     description="Eol Completion",
