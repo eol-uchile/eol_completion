@@ -253,7 +253,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '', '', '0/1', '0/1', 'No'])
 
-    @patch('eol_completion.views.get_user_id_with_indiv_id_list')
+    @patch('eol_completion.tasks.get_user_id_with_indiv_id_list')
     def test_render_data_with_indiv_id(self, mock_user_id_with_indiv_id_list):
         """
             Test get data normal process with edxloginuser
@@ -270,7 +270,7 @@ class TestEolCompletionView(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             data['data'][-1], ['student@edx.org', 'student', '000000001K', '', '0/1', '0/1', 'No'])
 
-    @patch('eol_completion.views.get_user_id_with_indiv_id_list')
+    @patch('eol_completion.utils.get_user_id_with_indiv_id_list')
     def test_render_data_with_indiv_id_big_course(self, mock_user_id_with_indiv_id_list):
         """
             Test get data normal process with edxloginuser when is big course
